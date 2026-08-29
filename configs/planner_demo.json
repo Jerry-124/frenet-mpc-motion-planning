@@ -1,0 +1,22 @@
+{
+  "extends": "default.json",
+  "schema_version": 1,
+  "simulation": {"duration_s": 8.0},
+  "planner": {
+    "target_offsets_m": [0.0, 3.5],
+    "lane_change_durations_s": [3.0, 4.0, 5.0],
+    "target_speeds_mps": [8.0, 10.0, 12.0],
+    "min_normalized_clearance": 1.25,
+    "road_bounds_m": [-1.75, 5.25],
+    "cost_weights": {
+      "lateral_jerk": 0.03,
+      "lateral_acceleration": 0.08,
+      "speed_error": 0.8,
+      "lane_offset": 0.25,
+      "obstacle_risk": 2.0
+    },
+    "obstacles": [
+      {"s_m": 38.0, "d_m": 0.0, "speed_mps": 2.0}
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "extends": "default.json",
+  "schema_version": 1,
+  "simulation": {"duration_s": 8.0},
+  "sensitivity": {
+    "acceptance": {"lateral_rmse_limit_m": 0.20},
+    "sweeps": {
+      "horizon": [4, 6, 8, 12, 16],
+      "q_y": [2.0, 4.0, 8.0, 16.0, 32.0],
+      "rd_steer": [0.5, 1.0, 2.0, 4.0, 8.0]
+    }
+  }
+}

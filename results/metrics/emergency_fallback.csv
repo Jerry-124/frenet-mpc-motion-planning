@@ -1,0 +1,19 @@
+metric,value
+mode,emergency_fallback
+transition_log,normal_planning -> emergency_fallback
+candidate_count,8
+feasible_candidate_count,0
+rejected_candidate_count,8
+reference_stop_time_s,3.3333333333333335
+analytical_continuous_stop_distance_m,16.666666666666668
+reference_stop_distance_m,17.17
+reference_min_normalized_clearance,1.9659999999999997
+reference_collision_avoidable,True
+actual_travel_distance_m,17.14839779807446
+actual_stop_distance_error_m,-0.02160220192554263
+actual_final_speed_mps,0.0
+actual_min_normalized_clearance,1.9739723832666771
+tracking_lateral_rmse_m,0.12803180750831356
+tracking_constraint_violations,0
+tracking_solver_failures,0
+minimum_commanded_accel_mps2,-3.0

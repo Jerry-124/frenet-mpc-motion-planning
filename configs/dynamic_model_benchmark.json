@@ -1,0 +1,49 @@
+{
+  "extends": "default.json",
+  "schema_version": 1,
+  "simulation": {"duration_s": 8.0},
+  "dynamic_benchmark": {
+    "initial_lateral_offset_m": -0.20,
+    "friction_aware_initial_lateral_offset_m": 0.0,
+    "vehicle_model": {
+      "mass_kg": 1500.0,
+      "yaw_inertia_kgm2": 2500.0,
+      "lf_m": 1.2,
+      "lr_m": 1.6,
+      "cornering_stiffness_front_n_rad": 80000.0,
+      "cornering_stiffness_rear_n_rad": 80000.0,
+      "gravity_mps2": 9.81,
+      "integration_substeps": 10,
+      "tire_model": "smooth_tanh_friction_circle"
+    },
+    "acceptance": {"lateral_rmse_limit_m": 0.30, "sideslip_limit_deg": 5.0},
+    "friction_planner": {
+      "target_speeds_mps": [6.0, 8.0, 8.5, 9.0, 9.5, 10.0, 12.0],
+      "lane_change_durations_s": [2.5, 4.0, 5.0, 6.0],
+      "lane_change_start_times_s": [0.0, 0.5, 1.5, 2.5, 3.5],
+      "speed_transition_durations_s": [2.0, 2.25, 2.5, 2.75, 3.0, 3.25, 3.5],
+      "safety_factor": 0.95,
+      "cost_weights": {
+        "speed_error": 2.0,
+        "lane_change_duration": 0.08,
+        "lane_change_delay": 0.15,
+        "friction_utilization": 0.1
+      }
+    },
+    "scenarios": [
+      {"name": "kinematic_matched_12", "speed_mps": 12.0, "friction_coefficient": 1.0, "plant": "kinematic"},
+      {"name": "dry_8", "speed_mps": 8.0, "friction_coefficient": 1.0},
+      {"name": "dry_12", "speed_mps": 12.0, "friction_coefficient": 1.0},
+      {"name": "dry_16", "speed_mps": 16.0, "friction_coefficient": 1.0},
+      {"name": "wet_12", "speed_mps": 12.0, "friction_coefficient": 0.6},
+      {"name": "wet_16", "speed_mps": 16.0, "friction_coefficient": 0.6},
+      {"name": "low_mu_8", "speed_mps": 8.0, "friction_coefficient": 0.3},
+      {"name": "low_mu_12", "speed_mps": 12.0, "friction_coefficient": 0.3},
+      {"name": "steer_rate_limited_12", "speed_mps": 12.0, "friction_coefficient": 1.0, "max_steer_rate_rad_s": 0.6},
+      {"name": "steer_rate_aware_12", "speed_mps": 12.0, "friction_coefficient": 1.0, "max_steer_rate_rad_s": 0.6, "rate_aware_controller": true},
+      {"name": "aggressive_dry_16", "speed_mps": 16.0, "friction_coefficient": 1.0, "lane_change_duration_s": 2.5, "road_amplitude_m": 4.0},
+      {"name": "aggressive_low_mu_12", "speed_mps": 12.0, "friction_coefficient": 0.3, "lane_change_duration_s": 2.5, "road_amplitude_m": 4.0},
+      {"name": "friction_aware_low_mu_12", "speed_mps": 12.0, "friction_coefficient": 0.3, "lane_change_duration_s": 2.5, "road_amplitude_m": 4.0, "friction_aware_planner": true}
+    ]
+  }
+}

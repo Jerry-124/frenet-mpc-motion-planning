@@ -1,0 +1,18 @@
+{
+  "extends": "default.json",
+  "schema_version": 1,
+  "simulation": {"duration_s": 8.0},
+  "robustness": {
+    "seeds": [0, 1, 2, 3, 4],
+    "acceptance": {"lateral_rmse_limit_m": 0.20, "max_position_error_limit_m": 0.80},
+    "scenarios": [
+      {"name": "nominal"},
+      {"name": "sensor_noise", "position_noise_std_m": 0.10, "yaw_noise_std_deg": 0.5, "speed_noise_std_mps": 0.15},
+      {"name": "delay_uncompensated", "actuation_delay_steps": 2},
+      {"name": "delay_compensated", "actuation_delay_steps": 2, "delay_compensation": true},
+      {"name": "wheelbase_mismatch_15pct", "plant_wheelbase_scale": 1.15},
+      {"name": "combined_uncompensated", "position_noise_std_m": 0.15, "yaw_noise_std_deg": 1.0, "speed_noise_std_mps": 0.20, "actuation_delay_steps": 2, "plant_wheelbase_scale": 1.15},
+      {"name": "combined_compensated", "position_noise_std_m": 0.15, "yaw_noise_std_deg": 1.0, "speed_noise_std_mps": 0.20, "actuation_delay_steps": 2, "plant_wheelbase_scale": 1.15, "delay_compensation": true}
+    ]
+  }
+}

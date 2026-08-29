@@ -1,0 +1,15 @@
+metric,value
+lateral_rmse_m,0.056427470455955364
+longitudinal_rmse_m,0.07933699843339624
+position_rmse_m,0.09735717098641698
+max_position_error_m,0.35
+heading_rmse_deg,1.153953837629851
+speed_rmse_mps,0.05070359129292953
+mean_abs_steering_deg,2.0706441746866977
+max_steering_rate_deg_s,155.4410965178857
+acceleration_limit_violations,0
+steering_limit_violations,0
+steering_rate_violations,0
+speed_state_violations,0
+constraint_violations,0
+solver_failures,0

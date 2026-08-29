@@ -1,0 +1,12 @@
+{
+  "extends": "replanning_demo.json",
+  "schema_version": 1,
+  "simulation": {"duration_s": 5.0},
+  "replanning": {
+    "target_speeds_mps": [6.0, 10.0],
+    "obstacles": [
+      {"s_m": 27.0, "d_m": 0.0, "speed_mps": 0.0},
+      {"s_m": 27.0, "d_m": 3.5, "speed_mps": 0.0}
+    ]
+  }
+}

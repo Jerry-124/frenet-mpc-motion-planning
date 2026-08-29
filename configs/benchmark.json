@@ -1,0 +1,14 @@
+{
+  "extends": "default.json",
+  "schema_version": 1,
+  "simulation": {"duration_s": 8.0},
+  "controllers": ["nmpc", "stanley_pid"],
+  "comparison_scenario": "curve_10",
+  "scenarios": [
+    {"name": "straight_8", "speed_mps": 8.0, "road_amplitude_m": 0.0},
+    {"name": "curve_8", "speed_mps": 8.0, "road_amplitude_m": 2.0},
+    {"name": "curve_10", "speed_mps": 10.0, "road_amplitude_m": 2.0},
+    {"name": "curve_12", "speed_mps": 12.0, "road_amplitude_m": 2.0},
+    {"name": "tight_curve_10", "speed_mps": 10.0, "road_amplitude_m": 4.0}
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "vehicle": {
+    "wheelbase_m": 2.8,
+    "max_steer_deg": 30.0,
+    "min_accel_mps2": -3.0,
+    "max_accel_mps2": 2.0,
+    "min_speed_mps": 0.0,
+    "max_speed_mps": 20.0
+  },
+  "simulation": {
+    "dt_s": 0.1,
+    "duration_s": 10.0,
+    "target_speed_mps": 10.0,
+    "lane_width_m": 3.5,
+    "lane_change_duration_s": 4.0
+  },
+  "mpc": {
+    "horizon_steps": 8,
+    "q_x": 1.0,
+    "q_y": 8.0,
+    "q_yaw": 3.0,
+    "q_v": 1.0,
+    "r_accel": 0.15,
+    "r_steer": 0.3,
+    "rd_accel": 0.4,
+    "rd_steer": 2.0,
+    "max_iterations": 35
+  },
+  "road": {
+    "amplitude_m": 2.0,
+    "wavelength_m": 70.0,
+    "length_m": 140.0,
+    "initial_lateral_offset_m": -0.35
+  }
+}

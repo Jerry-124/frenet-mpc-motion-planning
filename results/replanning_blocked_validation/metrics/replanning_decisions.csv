@@ -1,0 +1,6 @@
+time_s,ego_s_m,ego_d_m,ego_speed_mps,planner_mode,decision,target_d_m,target_speed_mps,lane_change_duration_s,feasible_candidates,selected_cost,predicted_min_clearance,collision_avoidable
+0.0,0.0,0.0,10.0,emergency_fallback,emergency_stop,0.0,0.0,0.0,0,nan,1.9659999999999997,True
+1.0,8.675071827261197,0.06361450909811779,6.9999999999999964,emergency_fallback,emergency_stop,0.06361450909811779,0.0,0.0,0,nan,1.9616458942923614,True
+2.0,14.32395580780337,0.1800804489849246,3.9999999999999982,emergency_fallback,emergency_stop,0.1800804489849246,0.0,0.0,0,nan,1.9664929818234191,True
+3.0,16.946651941626524,0.2408490504427303,0.9999999999999991,emergency_fallback,emergency_stop,0.2408490504427303,0.0,0.0,0,nan,1.9760856892220446,True
+4.0,17.14839779807446,0.24588223236460208,0.0,emergency_fallback,emergency_stop,0.24588223236460208,0.0,0.0,0,nan,1.9801150986754863,True

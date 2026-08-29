@@ -1,0 +1,24 @@
+{
+  "extends": "default.json",
+  "schema_version": 1,
+  "replanning": {
+    "interval_s": 1.0,
+    "planning_duration_s": 5.0,
+    "target_offsets_m": [0.0, 3.5],
+    "lane_change_durations_s": [2.5, 4.0],
+    "target_speeds_mps": [3.0, 6.0, 10.0],
+    "min_normalized_clearance": 1.25,
+    "road_bounds_m": [-1.75, 5.25],
+    "cost_weights": {
+      "lateral_jerk": 0.03,
+      "lateral_acceleration": 0.08,
+      "speed_error": 0.8,
+      "lane_offset": 0.25,
+      "obstacle_risk": 2.0
+    },
+    "obstacles": [
+      {"s_m": 42.0, "d_m": 0.0, "speed_mps": 3.0, "longitudinal_clearance_m": 6.0},
+      {"s_m": 19.0, "d_m": 3.5, "speed_mps": 0.0, "longitudinal_clearance_m": 6.0}
+    ]
+  }
+}
