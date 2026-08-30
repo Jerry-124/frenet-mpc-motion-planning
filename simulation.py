@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 import numpy as np
 
 from config import MPCConfig, SimulationConfig, VehicleConfig
@@ -65,7 +66,7 @@ def track_reference(
     else:
         raise ValueError(f"Unknown controller: {controller_name}")
 
-    simulation_steps = int(round(sim_cfg.duration / sim_cfg.dt))
+    simulation_steps = round(sim_cfg.duration / sim_cfg.dt)
     required_points = simulation_steps + mpc_cfg.horizon
     if len(reference_states) < required_points:
         raise ValueError(f"Reference needs at least {required_points} points for a full MPC preview")

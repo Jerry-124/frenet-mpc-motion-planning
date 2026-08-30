@@ -1,7 +1,8 @@
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
 import numpy as np
 
 
@@ -72,7 +73,7 @@ def load_json_config(path: str | Path) -> dict[str, Any]:
     with config_path.open(encoding="utf-8") as handle:
         data = json.load(handle)
     if not isinstance(data, dict):
-        raise ValueError(f"Configuration root must be an object: {config_path}")
+        raise TypeError(f"Configuration root must be an object: {config_path}")
     parent = data.pop("extends", None)
     if parent is not None:
         data = _deep_merge(load_json_config(config_path.parent / parent), data)
@@ -85,7 +86,7 @@ def load_json_config(path: str | Path) -> dict[str, Any]:
 def _section(data: dict, name: str, allowed: set[str]) -> dict:
     values = data.get(name, {})
     if not isinstance(values, dict):
-        raise ValueError(f"Configuration section '{name}' must be an object")
+        raise TypeError(f"Configuration section '{name}' must be an object")
     unknown = set(values) - allowed
     if unknown:
         raise ValueError(f"Unknown keys in '{name}': {sorted(unknown)}")

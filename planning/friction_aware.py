@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from itertools import product
+
 import numpy as np
 
 from .frenet import FrenetTrajectory, generate_frenet_trajectory
@@ -36,6 +38,19 @@ class FrictionAwarePlan:
         return self.lateral_acceleration_budget
 
 
+@dataclass(frozen=True)
+class _CandidateEvaluation:
+    cost: float
+    trajectory: FrenetTrajectory
+    target_speed: float
+    lane_change_duration: float
+    lane_change_start_time: float
+    peak_lateral_acceleration: float
+    peak_longitudinal_acceleration: float
+    peak_combined_acceleration: float
+    speed_transition_duration: float
+
+
 def trajectory_peak_lateral_acceleration(trajectory: FrenetTrajectory) -> float:
     _, lateral, _ = trajectory_acceleration_components(trajectory)
     return float(np.max(np.abs(lateral)))
@@ -55,6 +70,147 @@ def trajectory_acceleration_components(
     combined = np.hypot(ax, ay)
     interior = slice(2, -2) if len(lateral) > 4 else slice(None)
     return longitudinal[interior], lateral[interior], combined[interior]
+
+
+def _iter_candidate_settings(
+    target_speeds: tuple[float, ...],
+    lane_change_durations: tuple[float, ...],
+    lane_change_start_times: tuple[float, ...],
+    speed_transition_durations: tuple[float, ...] | None,
+):
+    for target_speed, change_duration, start_time in product(
+        target_speeds,
+        lane_change_durations,
+        lane_change_start_times,
+    ):
+        transition_options = speed_transition_durations or (
+            max(start_time, 1.0) if start_time > 0.0 else change_duration,
+        )
+        for speed_transition_duration in transition_options:
+            yield target_speed, change_duration, start_time, speed_transition_duration
+
+
+def _acceleration_peaks(
+    trajectory: FrenetTrajectory,
+) -> tuple[np.ndarray, float, float, float]:
+    longitudinal, lateral, combined = trajectory_acceleration_components(trajectory)
+    return (
+        longitudinal,
+        float(np.max(np.abs(lateral))),
+        float(np.max(np.abs(longitudinal))),
+        float(np.max(combined)),
+    )
+
+
+def _longitudinal_feasible(
+    longitudinal: np.ndarray,
+    minimum: float,
+    maximum: float,
+) -> bool:
+    return bool(
+        np.min(longitudinal) >= minimum - 1e-9
+        and np.max(longitudinal) <= maximum + 1e-9
+    )
+
+
+def _candidate_cost(
+    *,
+    desired_speed: float,
+    target_speed: float,
+    change_duration: float,
+    start_time: float,
+    peak_combined: float,
+    budget: float,
+    weights: FrictionPlanCostWeights,
+) -> float:
+    return float(
+        weights.speed_error * abs(desired_speed - target_speed)
+        + weights.lane_change_duration * change_duration
+        + weights.lane_change_delay * start_time
+        + weights.friction_utilization * peak_combined / budget
+    )
+
+
+def _evaluate_candidate(
+    *,
+    road: ReferencePath,
+    duration: float,
+    dt: float,
+    current_speed: float,
+    desired_speed: float,
+    target_d: float,
+    target_speed: float,
+    change_duration: float,
+    start_time: float,
+    speed_transition_duration: float,
+    budget: float,
+    min_longitudinal_acceleration: float,
+    max_longitudinal_acceleration: float,
+    weights: FrictionPlanCostWeights,
+) -> _CandidateEvaluation | None:
+    trajectory = generate_frenet_trajectory(
+        road,
+        duration,
+        dt,
+        0.0,
+        0.0,
+        current_speed,
+        target_speed,
+        target_d,
+        change_duration,
+        start_time,
+        speed_transition_duration,
+    )
+    longitudinal, peak_lateral, peak_longitudinal, peak_combined = (
+        _acceleration_peaks(trajectory)
+    )
+    if not _longitudinal_feasible(
+        longitudinal,
+        min_longitudinal_acceleration,
+        max_longitudinal_acceleration,
+    ) or peak_combined > budget + 1e-9:
+        return None
+    return _CandidateEvaluation(
+        cost=_candidate_cost(
+            desired_speed=desired_speed,
+            target_speed=target_speed,
+            change_duration=change_duration,
+            start_time=start_time,
+            peak_combined=peak_combined,
+            budget=budget,
+            weights=weights,
+        ),
+        trajectory=trajectory,
+        target_speed=target_speed,
+        lane_change_duration=change_duration,
+        lane_change_start_time=start_time,
+        peak_lateral_acceleration=peak_lateral,
+        peak_longitudinal_acceleration=peak_longitudinal,
+        peak_combined_acceleration=peak_combined,
+        speed_transition_duration=speed_transition_duration,
+    )
+
+
+def _to_plan(
+    best: _CandidateEvaluation,
+    *,
+    budget: float,
+    evaluated: int,
+    feasible_count: int,
+) -> FrictionAwarePlan:
+    return FrictionAwarePlan(
+        trajectory=best.trajectory,
+        target_speed=best.target_speed,
+        lane_change_duration=best.lane_change_duration,
+        lane_change_start_time=best.lane_change_start_time,
+        peak_lateral_acceleration=best.peak_lateral_acceleration,
+        lateral_acceleration_budget=budget,
+        evaluated_candidates=evaluated,
+        feasible_candidates=feasible_count,
+        peak_longitudinal_acceleration=best.peak_longitudinal_acceleration,
+        peak_combined_acceleration=best.peak_combined_acceleration,
+        speed_transition_duration=best.speed_transition_duration,
+    )
 
 
 def select_friction_aware_trajectory(
@@ -77,48 +233,45 @@ def select_friction_aware_trajectory(
 ) -> FrictionAwarePlan:
     weights = cost_weights or FrictionPlanCostWeights()
     budget = safety_factor * friction_coefficient * gravity
-    feasible = []
-    evaluated = 0
-    for target_speed in target_speeds:
-        for change_duration in lane_change_durations:
-            for start_time in lane_change_start_times:
-                transition_options = speed_transition_durations or (
-                    max(start_time, 1.0) if start_time > 0.0 else change_duration,
-                )
-                for speed_transition_duration in transition_options:
-                    evaluated += 1
-                    trajectory = generate_frenet_trajectory(
-                        road, duration, dt, 0.0, 0.0, current_speed, target_speed,
-                        target_d, change_duration, start_time, speed_transition_duration,
-                    )
-                    longitudinal, lateral, combined = trajectory_acceleration_components(trajectory)
-                    peak_lateral = float(np.max(np.abs(lateral)))
-                    peak_longitudinal = float(np.max(np.abs(longitudinal)))
-                    peak_combined = float(np.max(combined))
-                    longitudinal_feasible = bool(
-                        np.min(longitudinal) >= min_longitudinal_acceleration - 1e-9
-                        and np.max(longitudinal) <= max_longitudinal_acceleration + 1e-9
-                    )
-                    friction_feasible = peak_combined <= budget + 1e-9
-                    if longitudinal_feasible and friction_feasible:
-                        cost = (
-                            weights.speed_error * abs(desired_speed - target_speed)
-                            + weights.lane_change_duration * change_duration
-                            + weights.lane_change_delay * start_time
-                            + weights.friction_utilization * peak_combined / budget
-                        )
-                        feasible.append((
-                            cost, trajectory, target_speed, change_duration, start_time,
-                            peak_lateral, peak_longitudinal, peak_combined,
-                            speed_transition_duration,
-                        ))
+    settings = list(
+        _iter_candidate_settings(
+            target_speeds,
+            lane_change_durations,
+            lane_change_start_times,
+            speed_transition_durations,
+        )
+    )
+    feasible = [
+        candidate
+        for target_speed, change_duration, start_time, transition_duration in settings
+        if (
+            candidate := _evaluate_candidate(
+                road=road,
+                duration=duration,
+                dt=dt,
+                current_speed=current_speed,
+                desired_speed=desired_speed,
+                target_d=target_d,
+                target_speed=target_speed,
+                change_duration=change_duration,
+                start_time=start_time,
+                speed_transition_duration=transition_duration,
+                budget=budget,
+                min_longitudinal_acceleration=min_longitudinal_acceleration,
+                max_longitudinal_acceleration=max_longitudinal_acceleration,
+                weights=weights,
+            )
+        )
+        is not None
+    ]
     if not feasible:
-        raise RuntimeError("No trajectory satisfies longitudinal acceleration and friction-circle limits")
-    (
-        _, trajectory, target_speed, change_duration, start_time,
-        peak_lateral, peak_longitudinal, peak_combined, speed_transition_duration,
-    ) = min(feasible, key=lambda item: item[0])
-    return FrictionAwarePlan(
-        trajectory, target_speed, change_duration, start_time, peak_lateral, budget,
-        evaluated, len(feasible), peak_longitudinal, peak_combined, speed_transition_duration,
+        raise RuntimeError(
+            "No trajectory satisfies longitudinal acceleration and friction-circle limits"
+        )
+    best = min(feasible, key=lambda item: item.cost)
+    return _to_plan(
+        best,
+        budget=budget,
+        evaluated=len(settings),
+        feasible_count=len(feasible),
     )

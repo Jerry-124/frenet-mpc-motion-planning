@@ -1,21 +1,28 @@
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+
 import numpy as np
 
 from config import SimulationConfig, VehicleConfig, load_project_config
-from models import DynamicBicycle, DynamicVehicleConfig, DynamicVehicleState, KinematicBicycle, VehicleState
+from control import EmergencyBrakeController, StanleyPIDController
+from models import (
+    DynamicBicycle,
+    DynamicVehicleConfig,
+    DynamicVehicleState,
+    KinematicBicycle,
+    VehicleState,
+)
 from planning import (
     FrenetObstacle,
     ReferencePath,
     generate_and_score_candidates,
-    generate_lane_change,
     generate_emergency_stop_trajectory,
+    generate_lane_change,
     select_best_candidate,
     select_friction_aware_trajectory,
     select_with_emergency_fallback,
 )
-from control import EmergencyBrakeController, StanleyPIDController
 from replanning_demo import run_replanning_demo
 from robustness_benchmark import DelayedActuator
 

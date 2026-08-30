@@ -1,9 +1,9 @@
-from dataclasses import replace
-from pathlib import Path
 import argparse
 import csv
 import json
 import time
+from dataclasses import replace
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 
@@ -29,7 +29,7 @@ def run_sensitivity_benchmark(
                 project.road.wavelength_m, project.road.length_m,
             )
             runtime = time.perf_counter() - start
-            steps = int(round(project.simulation.duration / project.simulation.dt))
+            steps = round(project.simulation.duration / project.simulation.dt)
             passed = bool(
                 result.metrics["lateral_rmse_m"] <= lateral_limit
                 and result.metrics["constraint_violations"] == 0
