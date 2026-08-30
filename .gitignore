@@ -1,7 +1,29 @@
 __pycache__/
 *.py[cod]
 .venv/
+venv/
 .pytest_cache/
+.coverage
+.idea/
+.vscode/
 results/figures/*.png
 results/metrics/*.csv
 
+# Secrets and local credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+secrets.*
+credentials.*
+*.credentials
+.streamlit/secrets.toml
+
+# Local/OS artifacts
+.DS_Store
+Thumbs.db
