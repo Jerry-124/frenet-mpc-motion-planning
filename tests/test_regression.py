@@ -5,7 +5,12 @@ import numpy as np
 from config import MPCConfig, VehicleConfig, load_project_config
 from control import NonlinearMPC
 from dynamic_model_benchmark import _load_scenarios, run_dynamic_trial
-from models import DynamicBicycle, DynamicVehicleConfig, DynamicVehicleState, KinematicBicycle
+from models import (
+    DynamicBicycle,
+    DynamicVehicleConfig,
+    DynamicVehicleState,
+    KinematicBicycle,
+)
 from planning import candidate_cost_weights_from_mapping
 from simulation import run_closed_loop
 

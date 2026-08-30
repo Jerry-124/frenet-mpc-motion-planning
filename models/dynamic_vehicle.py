@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 import numpy as np
 
 from config import VehicleConfig
@@ -45,7 +46,7 @@ class DynamicBicycle:
         self.max_tire_friction_utilization = 0.0
 
     def _derivative(self, state: np.ndarray, control: np.ndarray) -> np.ndarray:
-        x, y, yaw, vx, vy, yaw_rate = state
+        _x, _y, yaw, vx, vy, yaw_rate = state
         requested_accel = float(np.clip(control[0], self.limits.min_accel, self.limits.max_accel))
         steer = float(np.clip(control[1], -self.limits.max_steer, self.limits.max_steer))
         safe_vx = max(abs(vx), 0.5)

@@ -1,11 +1,12 @@
-from pathlib import Path
 import argparse
 import json
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 
-from evaluation import save_metrics
 from config import load_project_config
+from evaluation import save_metrics
 from planning import ReferencePath
 from simulation import run_closed_loop
 

@@ -1,7 +1,7 @@
-from pathlib import Path
 import argparse
 import csv
 import json
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np

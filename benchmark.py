@@ -1,13 +1,12 @@
-from pathlib import Path
 import argparse
 import csv
 import json
 import time
+from dataclasses import replace
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-
-from dataclasses import replace
 
 from config import load_project_config
 from simulation import run_closed_loop

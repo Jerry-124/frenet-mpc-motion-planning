@@ -1,8 +1,11 @@
-from .vehicle import KinematicBicycle, VehicleState
 from .dynamic_vehicle import DynamicBicycle, DynamicVehicleConfig, DynamicVehicleState
+from .vehicle import KinematicBicycle, VehicleState
 
 __all__ = [
-    "KinematicBicycle", "VehicleState", "DynamicBicycle", "DynamicVehicleConfig",
+    "DynamicBicycle",
+    "DynamicVehicleConfig",
     "DynamicVehicleState",
+    "KinematicBicycle",
+    "VehicleState",
 ]
 
