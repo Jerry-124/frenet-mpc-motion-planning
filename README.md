@@ -33,7 +33,8 @@ The state is `z = [x, y, yaw, velocity]`, and the input is `u = [acceleration, s
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
 python main.py
 python benchmark.py
 python planner_demo.py
@@ -256,6 +257,10 @@ tests/                     unit and quantitative regression gates
 docs/PROJECT_REPORT.md     consolidated methodology and results report
 docs/RESUME_INTERVIEW_GUIDE_CN.md resume bullets and interview preparation
 ```
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
 
 ## Current scenario
 
