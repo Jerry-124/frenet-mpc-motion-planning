@@ -65,9 +65,8 @@ class ModelAndPlannerTests(unittest.TestCase):
             (RoadConfig, {"length_m": 0.0}),
         )
         for constructor, values in invalid_cases:
-            with self.subTest(constructor=constructor.__name__, values=values):
-                with self.assertRaises(ValueError):
-                    constructor(**values)
+            with self.subTest(constructor=constructor.__name__, values=values), self.assertRaises(ValueError):
+                constructor(**values)
 
     def test_nonphysical_dynamic_vehicle_values_are_rejected(self):
         invalid_cases = (
