@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "frenet-mpc-motion-planning"
-version = "0.1.0"
+version = "1.1.0"
 description = "Frenet-frame motion planning with nonlinear MPC trajectory tracking"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -17,6 +17,9 @@ dependencies = [
 classifiers = [
   "License :: OSI Approved :: MIT License",
 ]
+
+[project.urls]
+Repository = "https://github.com/Jerry-124/frenet-mpc-motion-planning"
 
 [project.optional-dependencies]
 dev = [
