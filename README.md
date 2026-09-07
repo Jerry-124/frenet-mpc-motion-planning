@@ -1,8 +1,9 @@
 # Autonomous Vehicle Motion Planning & MPC
 
+[![Version](https://img.shields.io/badge/version-v1.1.0-blueviolet)](CHANGELOG.md)
 [![CI](https://github.com/Jerry-124/frenet-mpc-motion-planning/actions/workflows/ci.yml/badge.svg)](https://github.com/Jerry-124/frenet-mpc-motion-planning/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](#run)
-[![Tests](https://img.shields.io/badge/tests-23-brightgreen)](#current-completion-status)
+[![Tests](https://img.shields.io/badge/tests-27-brightgreen)](#current-completion-status)
 
 An executable baseline for Frenet-frame lane-change trajectory generation and constrained trajectory tracking with nonlinear model predictive control (NMPC).
 
@@ -62,6 +63,7 @@ For the complete methodology, validation matrix, limitations, and resume/intervi
 
 - [`docs/PROJECT_REPORT.md`](docs/PROJECT_REPORT.md)
 - [`docs/RESUME_INTERVIEW_GUIDE_CN.md`](docs/RESUME_INTERVIEW_GUIDE_CN.md)
+- [`CHANGELOG.md`](CHANGELOG.md)
 
 Every executable also accepts an explicit configuration and output directory:
 
@@ -190,7 +192,7 @@ Timing is a local Python measurement, not a hard real-time guarantee. Full sweep
 `dynamic_model_benchmark.py` replaces the matched kinematic plant with a six-state dynamic bicycle model while leaving NMPC's prediction model unchanged. The plant adds lateral velocity, yaw rate, mass, yaw inertia, axle geometry, front/rear cornering stiffness, smooth `tanh` tire-force saturation, combined longitudinal/lateral friction circles at each axle, and RK4 integration. Physical parameters are loaded from the experiment configuration.
 
 | Scenario | Lateral RMSE | Max sideslip | Result |
-|---|---:|---:|---:|
+|---|---:|---:|
 | Matched kinematic, 12 m/s | 0.035 m | 0.00° | Pass |
 | Dynamic dry, 8–16 m/s | 0.037–0.064 m | ≤3.36° | Pass |
 | Dynamic wet, 12–16 m/s | 0.045–0.048 m | ≤2.44° | Pass |
@@ -261,6 +263,7 @@ tests/                     unit and quantitative regression gates
 .github/workflows/ci.yml   Python 3.10/3.12 pytest, compile, dependency, and Ruff CI
 docs/PROJECT_REPORT.md     consolidated methodology and results report
 docs/RESUME_INTERVIEW_GUIDE_CN.md resume bullets and interview preparation
+CHANGELOG.md               release history and portfolio hardening notes
 ```
 
 ## License
@@ -273,6 +276,6 @@ The ego vehicle starts with a deliberate `-0.35 m` lateral disturbance, tracks a
 
 ## Current completion status
 
-The V1 software baseline is portfolio-ready: initial modeling, P0 safety corrections, P1 controller analysis/constraints, P2 dynamic-model/configuration/regression work, consolidated reporting, and resume/interview documentation are complete. The suite currently contains **23 pytest tests**, including deterministic acceptance gates for the baseline controller, predicted speed constraints, per-axle friction circles, steering-rate correction, friction-aware low-μ correction, robustness aggregation, and the lane-change-duration parameter-propagation regression. GitHub Actions runs the full suite on every push and pull request on Python 3.10 and 3.12, together with compile, dependency-consistency, and Ruff checks.
+The **V1.1.0** software baseline is portfolio-ready: initial modeling, P0 safety corrections, P1 controller analysis/constraints, P2 dynamic-model/configuration/regression work, solver-failure hardening, physical-parameter validation, consolidated reporting, and resume/interview documentation are complete. The suite currently contains **27 pytest tests**, including deterministic acceptance gates for the baseline controller, predicted speed constraints, per-axle friction circles, steering-rate correction, friction-aware low-μ correction, robustness aggregation, lane-change-duration parameter propagation, invalid physical configurations, and NMPC solver-failure/non-finite-output handling. GitHub Actions runs the full suite on every push to `main` and every pull request targeting `main` on Python 3.10 and 3.12, together with compile, dependency-consistency, and Ruff checks.
 
-Research extensions are isolated from V1 on `research/robust-cbf-nmpc-v2`, whose roadmap targets friction-envelope constraints, CBF safety, robust uncertainty handling, risk-aware scoring, realistic scenario benchmarks, and publication-grade ablations. Hardware-oriented validation remains outside this software-model scope.
+Research extensions remain isolated from V1.1.0 on `research/robust-cbf-nmpc-v2`, whose roadmap targets friction-envelope constraints, CBF safety, robust uncertainty handling, risk-aware scoring, realistic scenario benchmarks, and publication-grade ablations. Hardware-oriented validation remains outside this software-model scope.
