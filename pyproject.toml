@@ -45,3 +45,9 @@ exclude = ["tests*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# SLSQP can transiently step outside box bounds during line search; SciPy clips
+# those trial values internally. Constraint/regression tests still verify the
+# returned controller behavior and physical limits.
+filterwarnings = [
+  "ignore:Values in x were outside bounds during a minimize step, clipping to bounds:RuntimeWarning:scipy\\.optimize\\._slsqp_py",
+]
