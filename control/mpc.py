@@ -24,6 +24,7 @@ class NonlinearMPC:
         self.config = config
         self.previous_solution = np.zeros((config.horizon, 2), dtype=float)
         self.last_success = True
+        self.last_fallback_used = False
         self.max_steer_rate = max_steer_rate
 
     def _rollout(self, state: np.ndarray, controls: np.ndarray) -> np.ndarray:
@@ -62,6 +63,13 @@ class NonlinearMPC:
             self.vehicle.max_speed - predicted_speed,
         ]
 
+    def _safe_fallback_control(self, actual_steer: float | None) -> np.ndarray:
+        """Return a bounded, deterministic command after a failed optimizer solve."""
+        accel = float(np.clip(-1.0, self.vehicle.min_accel, self.vehicle.max_accel))
+        steer = 0.0 if actual_steer is None else float(actual_steer)
+        steer = float(np.clip(steer, -self.vehicle.max_steer, self.vehicle.max_steer))
+        return np.array([accel, steer], dtype=float)
+
     def control(self, state: np.ndarray, references: np.ndarray, actual_steer: float | None = None) -> np.ndarray:
         if len(references) < self.config.horizon:
             references = np.vstack((references, np.repeat(references[-1][None, :], self.config.horizon - len(references), axis=0)))
@@ -98,9 +106,12 @@ class NonlinearMPC:
             constraints=constraints,
             options={"maxiter": self.config.max_iterations, "ftol": 1e-3, "disp": False},
         )
-        self.last_success = bool(result.success)
-        if result.success and np.all(np.isfinite(result.x)):
+        solution_is_valid = bool(result.success and np.all(np.isfinite(result.x)))
+        self.last_success = solution_is_valid
+        self.last_fallback_used = not solution_is_valid
+        if solution_is_valid:
             self.previous_solution = result.x.reshape(self.config.horizon, 2)
         else:
-            self.previous_solution = guess
+            fallback = self._safe_fallback_control(actual_steer)
+            self.previous_solution = np.repeat(fallback[None, :], self.config.horizon, axis=0)
         return self.previous_solution[0].copy()
