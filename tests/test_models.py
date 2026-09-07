@@ -1,11 +1,19 @@
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import numpy as np
 
-from config import SimulationConfig, VehicleConfig, load_project_config
-from control import EmergencyBrakeController, StanleyPIDController
+from config import (
+    MPCConfig,
+    RoadConfig,
+    SimulationConfig,
+    VehicleConfig,
+    load_project_config,
+)
+from control import EmergencyBrakeController, NonlinearMPC, StanleyPIDController
 from models import (
     DynamicBicycle,
     DynamicVehicleConfig,
@@ -42,6 +50,79 @@ class ModelAndPlannerTests(unittest.TestCase):
             "dynamic_model_benchmark.json", "sensitivity_benchmark.json",
         ):
             self.assertEqual(load_project_config(f"configs/{name}").schema_version, 1)
+
+    def test_nonphysical_project_config_values_are_rejected(self):
+        invalid_cases = (
+            (VehicleConfig, {"wheelbase": 0.0}),
+            (VehicleConfig, {"max_steer": 0.0}),
+            (VehicleConfig, {"min_accel": 0.0}),
+            (VehicleConfig, {"max_accel": 0.0}),
+            (VehicleConfig, {"min_speed": -1.0}),
+            (SimulationConfig, {"dt": 0.0}),
+            (SimulationConfig, {"lane_change_duration": 0.0}),
+            (MPCConfig, {"horizon": 0}),
+            (MPCConfig, {"q_y": -1.0}),
+            (RoadConfig, {"length_m": 0.0}),
+        )
+        for constructor, values in invalid_cases:
+            with self.subTest(constructor=constructor.__name__, values=values), self.assertRaises(ValueError):
+                constructor(**values)
+
+    def test_nonphysical_dynamic_vehicle_values_are_rejected(self):
+        invalid_cases = (
+            {"mass": 0.0},
+            {"yaw_inertia": 0.0},
+            {"lf": 0.0},
+            {"cornering_stiffness_front": 0.0},
+            {"friction_coefficient": 0.0},
+            {"integration_substeps": 0},
+            {"max_steer_rate_rad_s": 0.0},
+        )
+        for values in invalid_cases:
+            with self.subTest(values=values), self.assertRaises(ValueError):
+                DynamicVehicleConfig(**values)
+        with self.assertRaises(ValueError):
+            DynamicBicycle(DynamicVehicleConfig(), VehicleConfig(), 0.0)
+
+    def test_nmpc_uses_bounded_fallback_when_solver_fails(self):
+        limits = VehicleConfig()
+        cfg = MPCConfig(horizon=4)
+        controller = NonlinearMPC(KinematicBicycle(limits, 0.1), limits, cfg)
+        state = np.array([0.0, 0.0, 0.0, 10.0])
+        references = np.tile(np.array([1.0, 0.0, 0.0, 10.0]), (cfg.horizon, 1))
+        failed_result = SimpleNamespace(success=False, x=np.zeros(cfg.horizon * 2))
+
+        with patch("control.mpc.minimize", return_value=failed_result):
+            control = controller.control(state, references)
+
+        self.assertFalse(controller.last_success)
+        self.assertTrue(controller.last_fallback_used)
+        self.assertLess(control[0], 0.0)
+        self.assertGreaterEqual(control[0], limits.min_accel)
+        self.assertLessEqual(control[0], limits.max_accel)
+        self.assertEqual(control[1], 0.0)
+        np.testing.assert_allclose(
+            controller.previous_solution,
+            np.repeat(control[None, :], cfg.horizon, axis=0),
+        )
+
+    def test_nmpc_rejects_nonfinite_solver_solution(self):
+        limits = VehicleConfig()
+        cfg = MPCConfig(horizon=4)
+        controller = NonlinearMPC(KinematicBicycle(limits, 0.1), limits, cfg)
+        state = np.array([0.0, 0.0, 0.0, 10.0])
+        references = np.tile(np.array([1.0, 0.0, 0.0, 10.0]), (cfg.horizon, 1))
+        nonfinite_result = SimpleNamespace(
+            success=True,
+            x=np.full(cfg.horizon * 2, np.nan),
+        )
+
+        with patch("control.mpc.minimize", return_value=nonfinite_result):
+            control = controller.control(state, references)
+
+        self.assertFalse(controller.last_success)
+        self.assertTrue(controller.last_fallback_used)
+        self.assertTrue(np.all(np.isfinite(control)))
 
     def test_straight_vehicle_step(self):
         model = KinematicBicycle(VehicleConfig(), 0.1)
