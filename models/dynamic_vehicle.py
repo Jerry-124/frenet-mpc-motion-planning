@@ -18,6 +18,26 @@ class DynamicVehicleConfig:
     integration_substeps: int = 10
     max_steer_rate_rad_s: float | None = None
 
+    def __post_init__(self) -> None:
+        positive_values = {
+            "mass": self.mass,
+            "yaw_inertia": self.yaw_inertia,
+            "lf": self.lf,
+            "lr": self.lr,
+            "cornering_stiffness_front": self.cornering_stiffness_front,
+            "cornering_stiffness_rear": self.cornering_stiffness_rear,
+            "friction_coefficient": self.friction_coefficient,
+            "gravity": self.gravity,
+        }
+        for name, value in positive_values.items():
+            if not np.isfinite(value) or value <= 0.0:
+                raise ValueError(f"{name} must be finite and positive")
+        if self.integration_substeps < 1:
+            raise ValueError("integration_substeps must be at least 1")
+        if self.max_steer_rate_rad_s is not None:
+            if not np.isfinite(self.max_steer_rate_rad_s) or self.max_steer_rate_rad_s <= 0.0:
+                raise ValueError("max_steer_rate_rad_s must be positive when configured")
+
 
 @dataclass
 class DynamicVehicleState:
@@ -39,6 +59,8 @@ class DynamicBicycle:
     """Six-state single-track plant with smooth nonlinear tires and friction circles."""
 
     def __init__(self, config: DynamicVehicleConfig, limits: VehicleConfig, dt: float):
+        if not np.isfinite(dt) or dt <= 0.0:
+            raise ValueError("dt must be finite and positive")
         self.config = config
         self.limits = limits
         self.dt = dt
