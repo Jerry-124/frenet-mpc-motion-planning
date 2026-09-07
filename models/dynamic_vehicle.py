@@ -32,8 +32,12 @@ class DynamicVehicleConfig:
         for name, value in positive_values.items():
             if not np.isfinite(value) or value <= 0.0:
                 raise ValueError(f"{name} must be finite and positive")
-        if self.integration_substeps < 1:
-            raise ValueError("integration_substeps must be at least 1")
+        if (
+            not isinstance(self.integration_substeps, int)
+            or isinstance(self.integration_substeps, bool)
+            or self.integration_substeps < 1
+        ):
+            raise ValueError("integration_substeps must be a positive integer")
         if self.max_steer_rate_rad_s is not None:
             if not np.isfinite(self.max_steer_rate_rad_s) or self.max_steer_rate_rad_s <= 0.0:
                 raise ValueError("max_steer_rate_rad_s must be positive when configured")
