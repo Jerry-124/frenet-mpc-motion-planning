@@ -1,5 +1,9 @@
 # Autonomous Vehicle Motion Planning & MPC
 
+[![CI](https://github.com/Jerry-124/frenet-mpc-motion-planning/actions/workflows/ci.yml/badge.svg)](https://github.com/Jerry-124/frenet-mpc-motion-planning/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](#run)
+[![Tests](https://img.shields.io/badge/tests-23-brightgreen)](#current-completion-status)
+
 An executable baseline for Frenet-frame lane-change trajectory generation and constrained trajectory tracking with nonlinear model predictive control (NMPC).
 
 ## Implemented baseline
@@ -45,10 +49,11 @@ python fallback_demo.py
 python sensitivity_benchmark.py
 ```
 
-Run the automated unit and quantitative regression suite:
+Run the complete automated unit and quantitative regression suite:
 
 ```bash
-python -m unittest discover -s tests
+python -m pytest -q
+ruff check .
 ```
 
 Outputs are written to `results/metrics/` and `results/figures/`.
@@ -250,10 +255,10 @@ replanning_demo.py         online prediction, commitment, and replanning loop
 robustness_benchmark.py    noise/delay/mismatch Monte Carlo experiments
 dynamic_model_benchmark.py friction and dynamic-plant envelope tests
 fallback_demo.py           fully blocked-road emergency-stop validation
-sensitivity_benchmark.py    MPC horizon/weight trade-off experiment
+sensitivity_benchmark.py   MPC horizon/weight trade-off experiment
 main.py                    closed-loop simulation and plots
 tests/                     unit and quantitative regression gates
-.github/workflows/ci.yml   Python 3.12 compile and regression workflow
+.github/workflows/ci.yml   Python 3.10/3.12 pytest, compile, dependency, and Ruff CI
 docs/PROJECT_REPORT.md     consolidated methodology and results report
 docs/RESUME_INTERVIEW_GUIDE_CN.md resume bullets and interview preparation
 ```
@@ -268,6 +273,6 @@ The ego vehicle starts with a deliberate `-0.35 m` lateral disturbance, tracks a
 
 ## Current completion status
 
-The initial modeling, P0 safety corrections, P1 controller analysis/constraints, and P2 dynamic-model/configuration/regression work are complete. The suite currently contains 20 passing tests, including deterministic acceptance gates for the baseline controller, predicted speed constraints, per-axle friction circles, steering-rate correction, and friction-aware low-μ correction. GitHub Actions runs the same suite on every push and pull request.
+The V1 software baseline is portfolio-ready: initial modeling, P0 safety corrections, P1 controller analysis/constraints, P2 dynamic-model/configuration/regression work, consolidated reporting, and resume/interview documentation are complete. The suite currently contains **23 pytest tests**, including deterministic acceptance gates for the baseline controller, predicted speed constraints, per-axle friction circles, steering-rate correction, friction-aware low-μ correction, robustness aggregation, and the lane-change-duration parameter-propagation regression. GitHub Actions runs the full suite on every push and pull request on Python 3.10 and 3.12, together with compile, dependency-consistency, and Ruff checks.
 
-The remaining project milestone is a final consolidated report and resume-ready result summary; hardware-oriented validation remains outside this software-model scope.
+Research extensions are isolated from V1 on `research/robust-cbf-nmpc-v2`, whose roadmap targets friction-envelope constraints, CBF safety, robust uncertainty handling, risk-aware scoring, realistic scenario benchmarks, and publication-grade ablations. Hardware-oriented validation remains outside this software-model scope.
