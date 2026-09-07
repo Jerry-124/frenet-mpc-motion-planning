@@ -15,6 +15,24 @@ class VehicleConfig:
     min_speed: float = 0.0
     max_speed: float = 20.0
 
+    def __post_init__(self) -> None:
+        values = (
+            self.wheelbase,
+            self.max_steer,
+            self.min_accel,
+            self.max_accel,
+            self.min_speed,
+            self.max_speed,
+        )
+        if not np.all(np.isfinite(values)):
+            raise ValueError("Vehicle parameters must be finite")
+        if self.wheelbase <= 0.0 or self.max_steer <= 0.0:
+            raise ValueError("wheelbase and max_steer must be positive")
+        if self.min_accel >= 0.0 or self.max_accel <= 0.0:
+            raise ValueError("Acceleration limits must allow braking and acceleration")
+        if self.min_speed < 0.0 or self.max_speed <= self.min_speed:
+            raise ValueError("Speed limits must satisfy 0 <= min_speed < max_speed")
+
 
 @dataclass(frozen=True)
 class SimulationConfig:
@@ -23,6 +41,23 @@ class SimulationConfig:
     target_speed: float = 10.0
     lane_width: float = 3.5
     lane_change_duration: float = 4.0
+
+    def __post_init__(self) -> None:
+        values = (
+            self.dt,
+            self.duration,
+            self.target_speed,
+            self.lane_width,
+            self.lane_change_duration,
+        )
+        if not np.all(np.isfinite(values)):
+            raise ValueError("Simulation parameters must be finite")
+        if self.dt <= 0.0 or self.duration <= 0.0:
+            raise ValueError("dt and duration must be positive")
+        if self.target_speed < 0.0:
+            raise ValueError("target_speed must be non-negative")
+        if self.lane_width <= 0.0 or self.lane_change_duration <= 0.0:
+            raise ValueError("lane_width and lane_change_duration must be positive")
 
 
 @dataclass(frozen=True)
@@ -38,6 +73,22 @@ class MPCConfig:
     rd_steer: float = 2.0
     max_iterations: int = 35
 
+    def __post_init__(self) -> None:
+        if self.horizon <= 0 or self.max_iterations <= 0:
+            raise ValueError("MPC horizon and max_iterations must be positive")
+        weights = (
+            self.q_x,
+            self.q_y,
+            self.q_yaw,
+            self.q_v,
+            self.r_accel,
+            self.r_steer,
+            self.rd_accel,
+            self.rd_steer,
+        )
+        if not np.all(np.isfinite(weights)) or any(weight < 0.0 for weight in weights):
+            raise ValueError("MPC cost weights must be finite and non-negative")
+
 
 @dataclass(frozen=True)
 class RoadConfig:
@@ -45,6 +96,18 @@ class RoadConfig:
     wavelength_m: float = 70.0
     length_m: float = 140.0
     initial_lateral_offset_m: float = -0.35
+
+    def __post_init__(self) -> None:
+        values = (
+            self.amplitude_m,
+            self.wavelength_m,
+            self.length_m,
+            self.initial_lateral_offset_m,
+        )
+        if not np.all(np.isfinite(values)):
+            raise ValueError("Road parameters must be finite")
+        if self.wavelength_m <= 0.0 or self.length_m <= 0.0:
+            raise ValueError("Road wavelength and length must be positive")
 
 
 @dataclass(frozen=True)
@@ -138,8 +201,4 @@ def load_project_config(path: str | Path = "configs/default.json") -> ProjectCon
         length_m=road_data.get("length_m", 140.0),
         initial_lateral_offset_m=road_data.get("initial_lateral_offset_m", -0.35),
     )
-    if simulation.dt <= 0.0 or simulation.duration <= 0.0 or mpc.horizon <= 0:
-        raise ValueError("dt, duration, and MPC horizon must be positive")
-    if vehicle.min_accel >= vehicle.max_accel or vehicle.min_speed > vehicle.max_speed:
-        raise ValueError("Vehicle limits are inconsistent")
     return ProjectConfig(1, vehicle, simulation, mpc, road, data)
