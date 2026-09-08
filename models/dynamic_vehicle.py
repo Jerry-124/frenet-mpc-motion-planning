@@ -64,7 +64,13 @@ class DynamicVehicleState:
 
 
 class DynamicBicycle:
-    """Six-state single-track plant with smooth nonlinear tires and friction circles."""
+    """Six-state single-track plant with nonlinear tires and per-axle friction circles.
+
+    Tire forces are formed in each wheel frame. Front-axle forces are rotated by the
+    steering angle into the vehicle body frame before the translational and yaw
+    equations are evaluated. The body-frame velocity equations retain the standard
+    ``vy * yaw_rate`` and ``vx * yaw_rate`` coupling terms.
+    """
 
     def __init__(self, config: DynamicVehicleConfig, limits: VehicleConfig, dt: float):
         if not np.isfinite(dt) or dt <= 0.0:
@@ -90,10 +96,16 @@ class DynamicBicycle:
         wheelbase = self.config.lf + self.config.lr
         front_load = self.config.mass * self.config.gravity * self.config.lr / wheelbase
         rear_load = self.config.mass * self.config.gravity * self.config.lf / wheelbase
-        total_longitudinal_force = np.clip(
-            self.config.mass * requested_accel,
-            -self.config.friction_coefficient * self.config.mass * self.config.gravity,
-            self.config.friction_coefficient * self.config.mass * self.config.gravity,
+        total_longitudinal_force = float(
+            np.clip(
+                self.config.mass * requested_accel,
+                -self.config.friction_coefficient
+                * self.config.mass
+                * self.config.gravity,
+                self.config.friction_coefficient
+                * self.config.mass
+                * self.config.gravity,
+            )
         )
         front_longitudinal = total_longitudinal_force * self.config.lr / wheelbase
         rear_longitudinal = total_longitudinal_force * self.config.lf / wheelbase
@@ -102,20 +114,20 @@ class DynamicBicycle:
         rear_circle = self.config.friction_coefficient * rear_load
         front_lateral_limit = np.sqrt(max(front_circle**2 - front_longitudinal**2, 0.0))
         rear_lateral_limit = np.sqrt(max(rear_circle**2 - rear_longitudinal**2, 0.0))
-        front_force = self._smooth_tire_force(
+        front_lateral = self._smooth_tire_force(
             alpha_front,
             self.config.cornering_stiffness_front,
             front_lateral_limit,
         )
-        rear_force = self._smooth_tire_force(
+        rear_lateral = self._smooth_tire_force(
             alpha_rear,
             self.config.cornering_stiffness_rear,
             rear_lateral_limit,
         )
-        front_utilization = np.hypot(front_longitudinal, front_force) / max(
+        front_utilization = np.hypot(front_longitudinal, front_lateral) / max(
             front_circle, 1e-9
         )
-        rear_utilization = np.hypot(rear_longitudinal, rear_force) / max(
+        rear_utilization = np.hypot(rear_longitudinal, rear_lateral) / max(
             rear_circle, 1e-9
         )
         self.max_tire_friction_utilization = max(
@@ -123,15 +135,21 @@ class DynamicBicycle:
             float(front_utilization),
             float(rear_utilization),
         )
-        accel = total_longitudinal_force / self.config.mass
+
+        cos_steer = np.cos(steer)
+        sin_steer = np.sin(steer)
+        front_force_x = front_longitudinal * cos_steer - front_lateral * sin_steer
+        front_force_y = front_longitudinal * sin_steer + front_lateral * cos_steer
+        total_force_x = front_force_x + rear_longitudinal
+        total_force_y = front_force_y + rear_lateral
 
         x_dot = vx * np.cos(yaw) - vy * np.sin(yaw)
         y_dot = vx * np.sin(yaw) + vy * np.cos(yaw)
         yaw_dot = yaw_rate
-        vx_dot = accel
-        vy_dot = (front_force + rear_force) / self.config.mass - vx * yaw_rate
+        vx_dot = total_force_x / self.config.mass + vy * yaw_rate
+        vy_dot = total_force_y / self.config.mass - vx * yaw_rate
         yaw_rate_dot = (
-            self.config.lf * front_force - self.config.lr * rear_force
+            self.config.lf * front_force_y - self.config.lr * rear_lateral
         ) / self.config.yaw_inertia
         return np.array([x_dot, y_dot, yaw_dot, vx_dot, vy_dot, yaw_rate_dot])
 

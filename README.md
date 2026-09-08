@@ -1,9 +1,9 @@
 # Autonomous Vehicle Motion Planning & MPC
 
-[![Version](https://img.shields.io/badge/version-v1.1.0-blueviolet)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v1.1.1-blueviolet)](CHANGELOG.md)
 [![CI](https://github.com/Jerry-124/frenet-mpc-motion-planning/actions/workflows/ci.yml/badge.svg)](https://github.com/Jerry-124/frenet-mpc-motion-planning/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](#run)
-[![Tests](https://img.shields.io/badge/tests-27-brightgreen)](#current-completion-status)
+[![Tests](https://img.shields.io/badge/tests-32-brightgreen)](#current-completion-status)
 
 An executable baseline for Frenet-frame lane-change trajectory generation and constrained trajectory tracking with nonlinear model predictive control (NMPC).
 
@@ -22,7 +22,7 @@ An executable baseline for Frenet-frame lane-change trajectory generation and co
 - multi-candidate Frenet local planner with moving-obstacle prediction
 - hard road-boundary/collision rejection and interpretable cost breakdown
 - Monte Carlo robustness benchmark with delay compensation
-- six-state dynamic bicycle plant with smooth nonlinear tire forces and per-axle friction circles
+- six-state dynamic bicycle plant with body-frame force coupling, steering-force projection, smooth nonlinear tire forces, and per-axle friction circles
 - speed/friction/model-mismatch operating-envelope benchmark
 - hard steering-rate constraints initialized from measured actuator state
 - friction-circle-aware speed/timing adaptation with longitudinal acceleration limits
@@ -55,6 +55,7 @@ Run the complete automated unit and quantitative regression suite:
 ```bash
 python -m pytest -q
 ruff check .
+ruff format --check .
 ```
 
 Outputs are written to `results/metrics/` and `results/figures/`.
@@ -185,25 +186,25 @@ Timing is a local Python measurement, not a hard real-time guarantee. Full sweep
 
 ## Dynamic-plant model mismatch
 
-`dynamic_model_benchmark.py` replaces the matched kinematic plant with a six-state dynamic bicycle model while leaving NMPC's prediction model unchanged. The plant adds lateral velocity, yaw rate, mass, yaw inertia, axle geometry, front/rear cornering stiffness, smooth `tanh` tire-force saturation, combined longitudinal/lateral friction circles at each axle, and RK4 integration. Physical parameters are loaded from the experiment configuration.
+`dynamic_model_benchmark.py` replaces the matched kinematic plant with a six-state dynamic bicycle model while leaving NMPC's prediction model unchanged. The plant adds lateral velocity, yaw rate, mass, yaw inertia, axle geometry, front/rear cornering stiffness, smooth `tanh` tire-force saturation, combined longitudinal/lateral friction circles at each axle, and RK4 integration. Front-wheel forces are resolved in the steered wheel frame and rotated into the vehicle body frame; the longitudinal/lateral velocity equations retain the standard `v_y r` / `v_x r` coupling terms. Physical parameters are loaded from the experiment configuration.
 
 | Scenario | Lateral RMSE | Max sideslip | Result |
-|---|---:|---:|
+|---|---:|---:|---|
 | Matched kinematic, 12 m/s | 0.035 m | 0.00° | Pass |
-| Dynamic dry, 8–16 m/s | 0.037–0.064 m | ≤3.36° | Pass |
-| Dynamic wet, 12–16 m/s | 0.045–0.048 m | ≤2.44° | Pass |
-| Dynamic low-μ, 8–12 m/s | 0.043–0.064 m | ≤1.96° | Pass |
-| Aggressive dry, 16 m/s | 0.164 m | 10.42° | Fail |
-| Steering-rate limited, 12 m/s | 11.783 m | 55.60° | Fail |
-| Steering-rate aware MPC, 12 m/s | 0.058 m | 1.79° | Pass |
-| Aggressive low-μ, 12 m/s | 10.462 m | 43.15° | Fail |
-| Friction-aware low-μ planning | 0.051 m | 1.76° | Pass |
+| Dynamic dry, 8–16 m/s | 0.037–0.066 m | ≤3.54° | Pass |
+| Dynamic wet, 12–16 m/s | 0.045–0.047 m | ≤2.36° | Pass |
+| Dynamic low-μ, 8–12 m/s | 0.045–0.067 m | ≤1.99° | Pass |
+| Aggressive dry, 16 m/s | 0.146 m | 9.09° | Fail |
+| Steering-rate limited, 12 m/s | 10.054 m | 5.93° | Fail |
+| Steering-rate aware MPC, 12 m/s | 0.061 m | 1.80° | Pass |
+| Aggressive low-μ, 12 m/s | 10.116 m | 89.51° | Fail |
+| Friction-aware low-μ planning | 0.054 m | 1.71° | Pass |
 
-The results separate two failure mechanisms. Ordinary tire-dynamics mismatch remains manageable, but an unmodeled `0.6 rad/s` steering-rate limit destabilizes the controller. Adding an actual-steering initial condition and hard rate constraints reduces lateral RMSE by `99.5%` without changing the physical actuator limit. The nonlinear tire model also correctly rejects the aggressive dry case on the `5°` sideslip gate even though its tracking RMSE remains below `0.30 m`; this prevents a numerically close but physically unstable run from being labeled successful.
+The results separate two failure mechanisms. Ordinary tire-dynamics mismatch remains manageable, but an unmodeled `0.6 rad/s` steering-rate limit destabilizes the controller. Adding an actual-steering initial condition and hard rate constraints reduces lateral RMSE by approximately `99.4%` without changing the physical actuator limit. The corrected nonlinear plant also rejects the aggressive dry case on the `5°` sideslip gate even though its tracking RMSE remains below `0.30 m`; this prevents a numerically close but dynamically unstable run from being labeled successful.
 
-An aggressive `2.5 s` maneuver on `μ = 0.3` saturates available force and fails. The corrected friction-aware planner checks both configured longitudinal acceleration bounds and the Cartesian combined-acceleration friction circle. It evaluates speed-transition timing independently from lane-change timing and selects: transition from `12` to `9.5 m/s` over `2.25 s` → start changing lanes at `0.5 s` → complete the maneuver over `4 s`. Peak longitudinal acceleration is `1.87 m/s²`; peak combined acceleration is `2.73 m/s²`, below the `0.95 μg = 2.80 m/s²` budget. The dynamic plant reaches at most `0.944` tire-friction utilization and lateral RMSE falls by `99.5%` to `0.051 m` without using a longitudinally infeasible reference.
+An aggressive `2.5 s` maneuver on `μ = 0.3` saturates available force and fails, reaching approximately `89.5°` peak sideslip in the configured stress case. The friction-aware planner checks both configured longitudinal acceleration bounds and the Cartesian combined-acceleration friction envelope. It evaluates speed-transition timing independently from lane-change timing and selects: transition from `12` to `9.5 m/s` over `2.25 s` → start changing lanes at `0.5 s` → complete the maneuver over `4 s`. Peak longitudinal acceleration is `1.87 m/s²`; peak combined acceleration is `2.73 m/s²`, below the `0.95 μg = 2.80 m/s²` budget. The corrected dynamic plant reaches at most `0.953` tire-friction utilization and lateral RMSE falls by approximately `99.5%` to `0.054 m` without using a longitudinally infeasible reference.
 
-Both original failures remain in the benchmark as before/after evidence rather than being overwritten.
+The stress-case failures remain in the benchmark as before/after evidence rather than being overwritten. These are software-model operating-envelope tests, not real-vehicle validation.
 
 Scenario-level results are exported to `results/metrics/dynamic_model_benchmark.csv`.
 
@@ -270,6 +271,6 @@ The ego vehicle starts with a deliberate `-0.35 m` lateral disturbance, tracks a
 
 ## Current completion status
 
-The **V1.1.0** software baseline is portfolio-ready: initial modeling, P0 safety corrections, P1 controller analysis/constraints, P2 dynamic-model/configuration/regression work, solver-failure hardening, physical-parameter validation and repository-level reporting are complete. The suite currently contains **27 pytest tests**, including deterministic acceptance gates for the baseline controller, predicted speed constraints, per-axle friction circles, steering-rate correction, friction-aware low-μ correction, robustness aggregation, lane-change-duration parameter propagation, invalid physical configurations, and NMPC solver-failure/non-finite-output handling. GitHub Actions runs the full suite on every push to `main` and every pull request targeting `main` on Python 3.10 and 3.12, together with compile, dependency-consistency, and Ruff checks.
+The **V1.1.1** software baseline is portfolio-ready: initial modeling, P0 safety corrections, P1 controller analysis/constraints, P2 dynamic-model/configuration/regression work, solver-failure hardening, physical-parameter validation, corrected body-frame dynamic-bicycle equations, and repository-level reporting are complete. The suite currently contains **32 pytest tests**, including deterministic acceptance gates for the baseline controller, predicted speed constraints, per-axle friction circles, body-frame force coupling and steering projection, left/right dynamic symmetry, steering-rate correction, friction-aware low-μ correction, robustness aggregation, lane-change-duration parameter propagation, invalid physical configurations, and NMPC solver-failure/non-finite-output handling. GitHub Actions runs the full suite on every push to `main` and every pull request targeting `main` on Python 3.10 and 3.12, together with compile, dependency-consistency, Ruff lint, and Ruff-format checks.
 
-Research extensions remain isolated from V1.1.0 on `research/robust-cbf-nmpc-v2`, whose roadmap targets friction-envelope constraints, CBF safety, robust uncertainty handling, risk-aware scoring, realistic scenario benchmarks, and publication-grade ablations. Hardware-oriented validation remains outside this software-model scope.
+Research extensions remain isolated from V1.1.1 on `research/robust-cbf-nmpc-v2`, whose roadmap targets friction-envelope constraints, CBF safety, robust uncertainty handling, risk-aware scoring, realistic scenario benchmarks, and publication-grade ablations. Hardware-oriented validation remains outside this software-model scope.
