@@ -18,7 +18,9 @@ from simulation import run_closed_loop
 class QuantitativeRegressionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.dynamic_project = load_project_config("configs/dynamic_model_benchmark.json")
+        cls.dynamic_project = load_project_config(
+            "configs/dynamic_model_benchmark.json"
+        )
         cls.dynamic_scenarios = {
             scenario.name: scenario
             for scenario in _load_scenarios(
@@ -30,9 +32,14 @@ class QuantitativeRegressionTests(unittest.TestCase):
     def test_default_nmpc_acceptance_gate(self):
         project = load_project_config("configs/default.json")
         result = run_closed_loop(
-            "nmpc", project.simulation, project.road.amplitude_m,
-            project.road.initial_lateral_offset_m, project.vehicle, project.mpc,
-            project.road.wavelength_m, project.road.length_m,
+            "nmpc",
+            project.simulation,
+            project.road.amplitude_m,
+            project.road.initial_lateral_offset_m,
+            project.vehicle,
+            project.mpc,
+            project.road.wavelength_m,
+            project.road.length_m,
         )
         self.assertLessEqual(result.metrics["lateral_rmse_m"], 0.08)
         self.assertEqual(result.metrics["constraint_violations"], 0)
@@ -52,7 +59,9 @@ class QuantitativeRegressionTests(unittest.TestCase):
     def test_combined_tire_force_stays_inside_friction_circle(self):
         limits = VehicleConfig()
         plant = DynamicBicycle(
-            DynamicVehicleConfig(friction_coefficient=0.3), limits, 0.1,
+            DynamicVehicleConfig(friction_coefficient=0.3),
+            limits,
+            0.1,
         )
         state = DynamicVehicleState(0.0, 0.0, 0.0, 12.0)
         for _ in range(20):
@@ -67,7 +76,8 @@ class QuantitativeRegressionTests(unittest.TestCase):
 
     def test_rate_aware_dynamic_correction_gate(self):
         metrics, _, _ = run_dynamic_trial(
-            self.dynamic_scenarios["steer_rate_aware_12"], self.dynamic_project,
+            self.dynamic_scenarios["steer_rate_aware_12"],
+            self.dynamic_project,
         )
         self.assertLessEqual(metrics["lateral_rmse_m"], 0.30)
         self.assertLessEqual(metrics["max_sideslip_deg"], 5.0)
@@ -77,7 +87,8 @@ class QuantitativeRegressionTests(unittest.TestCase):
 
     def test_friction_aware_dynamic_correction_gate(self):
         metrics, _, _ = run_dynamic_trial(
-            self.dynamic_scenarios["friction_aware_low_mu_12"], self.dynamic_project,
+            self.dynamic_scenarios["friction_aware_low_mu_12"],
+            self.dynamic_project,
         )
         self.assertLess(metrics["selected_target_speed_mps"], 12.0)
         self.assertLessEqual(

@@ -142,7 +142,9 @@ def load_json_config(path: str | Path) -> dict[str, Any]:
         data = _deep_merge(load_json_config(config_path.parent / parent), data)
     version = data.get("schema_version")
     if version != 1:
-        raise ValueError(f"Unsupported configuration schema_version {version!r}; expected 1")
+        raise ValueError(
+            f"Unsupported configuration schema_version {version!r}; expected 1"
+        )
     return data
 
 
@@ -158,20 +160,55 @@ def _section(data: dict, name: str, allowed: set[str]) -> dict:
 
 def load_project_config(path: str | Path = "configs/default.json") -> ProjectConfig:
     data = load_json_config(path)
-    vehicle_data = _section(data, "vehicle", {
-        "wheelbase_m", "max_steer_deg", "min_accel_mps2", "max_accel_mps2",
-        "min_speed_mps", "max_speed_mps",
-    })
-    simulation_data = _section(data, "simulation", {
-        "dt_s", "duration_s", "target_speed_mps", "lane_width_m", "lane_change_duration_s",
-    })
-    mpc_data = _section(data, "mpc", {
-        "horizon_steps", "q_x", "q_y", "q_yaw", "q_v", "r_accel", "r_steer",
-        "rd_accel", "rd_steer", "max_iterations",
-    })
-    road_data = _section(data, "road", {
-        "amplitude_m", "wavelength_m", "length_m", "initial_lateral_offset_m",
-    })
+    vehicle_data = _section(
+        data,
+        "vehicle",
+        {
+            "wheelbase_m",
+            "max_steer_deg",
+            "min_accel_mps2",
+            "max_accel_mps2",
+            "min_speed_mps",
+            "max_speed_mps",
+        },
+    )
+    simulation_data = _section(
+        data,
+        "simulation",
+        {
+            "dt_s",
+            "duration_s",
+            "target_speed_mps",
+            "lane_width_m",
+            "lane_change_duration_s",
+        },
+    )
+    mpc_data = _section(
+        data,
+        "mpc",
+        {
+            "horizon_steps",
+            "q_x",
+            "q_y",
+            "q_yaw",
+            "q_v",
+            "r_accel",
+            "r_steer",
+            "rd_accel",
+            "rd_steer",
+            "max_iterations",
+        },
+    )
+    road_data = _section(
+        data,
+        "road",
+        {
+            "amplitude_m",
+            "wavelength_m",
+            "length_m",
+            "initial_lateral_offset_m",
+        },
+    )
     vehicle = VehicleConfig(
         wheelbase=vehicle_data.get("wheelbase_m", 2.8),
         max_steer=np.deg2rad(vehicle_data.get("max_steer_deg", 30.0)),
@@ -189,10 +226,14 @@ def load_project_config(path: str | Path = "configs/default.json") -> ProjectCon
     )
     mpc = MPCConfig(
         horizon=mpc_data.get("horizon_steps", 8),
-        q_x=mpc_data.get("q_x", 1.0), q_y=mpc_data.get("q_y", 8.0),
-        q_yaw=mpc_data.get("q_yaw", 3.0), q_v=mpc_data.get("q_v", 1.0),
-        r_accel=mpc_data.get("r_accel", 0.15), r_steer=mpc_data.get("r_steer", 0.3),
-        rd_accel=mpc_data.get("rd_accel", 0.4), rd_steer=mpc_data.get("rd_steer", 2.0),
+        q_x=mpc_data.get("q_x", 1.0),
+        q_y=mpc_data.get("q_y", 8.0),
+        q_yaw=mpc_data.get("q_yaw", 3.0),
+        q_v=mpc_data.get("q_v", 1.0),
+        r_accel=mpc_data.get("r_accel", 0.15),
+        r_steer=mpc_data.get("r_steer", 0.3),
+        rd_accel=mpc_data.get("rd_accel", 0.4),
+        rd_steer=mpc_data.get("rd_steer", 2.0),
         max_iterations=mpc_data.get("max_iterations", 35),
     )
     road = RoadConfig(

@@ -67,13 +67,19 @@ def _score_candidate(
         cost_weights.lateral_jerk * np.sum(lateral_jerk**2) * dt
         + cost_weights.lateral_acceleration * np.sum(lateral_acceleration**2) * dt
     )
-    efficiency_cost = float(cost_weights.speed_error * abs(target_speed - desired_speed))
+    efficiency_cost = float(
+        cost_weights.speed_error * abs(target_speed - desired_speed)
+    )
     lane_cost = float(cost_weights.lane_offset * abs(target_d - preferred_lane_d))
 
-    within_road = np.all((trajectory.d >= road_bounds[0]) & (trajectory.d <= road_bounds[1]))
+    within_road = np.all(
+        (trajectory.d >= road_bounds[0]) & (trajectory.d <= road_bounds[1])
+    )
     min_clearance = np.inf
     for obstacle in obstacles:
-        obstacle_s = obstacle.s + obstacle.speed * (prediction_start_time + trajectory.time)
+        obstacle_s = obstacle.s + obstacle.speed * (
+            prediction_start_time + trajectory.time
+        )
         normalized_distance = np.hypot(
             (trajectory.s - obstacle_s) / obstacle.longitudinal_clearance,
             (trajectory.d - obstacle.d) / obstacle.lateral_clearance,
@@ -81,17 +87,35 @@ def _score_candidate(
         min_clearance = min(min_clearance, float(np.min(normalized_distance)))
 
     collision_free = min_clearance > min_normalized_clearance
-    risk_cost = 0.0 if not obstacles else float(cost_weights.obstacle_risk / max(min_clearance, 1e-6))
+    risk_cost = (
+        0.0
+        if not obstacles
+        else float(cost_weights.obstacle_risk / max(min_clearance, 1e-6))
+    )
     feasible = bool(within_road and collision_free)
     reason = ""
     if not within_road:
         reason = "road_boundary"
     elif not collision_free:
         reason = "collision"
-    total = comfort_cost + efficiency_cost + lane_cost + risk_cost if feasible else float("inf")
+    total = (
+        comfort_cost + efficiency_cost + lane_cost + risk_cost
+        if feasible
+        else float("inf")
+    )
     return ScoredTrajectory(
-        trajectory, target_d, lane_change_duration, target_speed, feasible, total,
-        comfort_cost, efficiency_cost, lane_cost, risk_cost, min_clearance, reason,
+        trajectory,
+        target_d,
+        lane_change_duration,
+        target_speed,
+        feasible,
+        total,
+        comfort_cost,
+        efficiency_cost,
+        lane_cost,
+        risk_cost,
+        min_clearance,
+        reason,
     )
 
 
@@ -119,15 +143,29 @@ def generate_and_score_candidates(
         for change_duration in lane_change_durations:
             for speed in target_speeds:
                 trajectory = generate_frenet_trajectory(
-                    road, duration, dt, s0, d0,
+                    road,
+                    duration,
+                    dt,
+                    s0,
+                    d0,
                     speed if current_speed is None else current_speed,
-                    speed, target_d, change_duration,
+                    speed,
+                    target_d,
+                    change_duration,
                 )
                 candidates.append(
                     _score_candidate(
-                        trajectory, target_d, change_duration, speed, obstacles,
-                        desired_speed, preferred_lane_d, road_bounds, prediction_start_time,
-                        weights, min_normalized_clearance,
+                        trajectory,
+                        target_d,
+                        change_duration,
+                        speed,
+                        obstacles,
+                        desired_speed,
+                        preferred_lane_d,
+                        road_bounds,
+                        prediction_start_time,
+                        weights,
+                        min_normalized_clearance,
                     )
                 )
     return candidates
@@ -136,5 +174,7 @@ def generate_and_score_candidates(
 def select_best_candidate(candidates: list[ScoredTrajectory]) -> ScoredTrajectory:
     feasible = [candidate for candidate in candidates if candidate.feasible]
     if not feasible:
-        raise RuntimeError("No collision-free Frenet trajectory satisfies the road boundaries")
+        raise RuntimeError(
+            "No collision-free Frenet trajectory satisfies the road boundaries"
+        )
     return min(feasible, key=lambda candidate: candidate.total_cost)

@@ -74,7 +74,8 @@ def run_trial(scenario: RobustnessScenario, seed: int, project=None):
     )
     trajectory = generate_lane_change(
         road,
-        sim_cfg.duration + (mpc_cfg.horizon + scenario.actuation_delay_steps) * sim_cfg.dt,
+        sim_cfg.duration
+        + (mpc_cfg.horizon + scenario.actuation_delay_steps) * sim_cfg.dt,
         sim_cfg.dt,
         sim_cfg.target_speed,
         sim_cfg.lane_width,
@@ -111,12 +112,7 @@ def run_trial(scenario: RobustnessScenario, seed: int, project=None):
                 )
             reference_shift = scenario.actuation_delay_steps
         references = trajectory.states[
-            index
-            + 1
-            + reference_shift : index
-            + 1
-            + reference_shift
-            + mpc_cfg.horizon
+            index + 1 + reference_shift : index + 1 + reference_shift + mpc_cfg.horizon
         ]
         command = controller.control(controller_state, references)
         solver_failures += int(not controller.last_success)
@@ -212,9 +208,7 @@ def _scenario_summary(
         "heading_rmse_mean_deg": float(
             np.mean(_metric_values(group, "heading_rmse_deg"))
         ),
-        "speed_rmse_mean_mps": float(
-            np.mean(_metric_values(group, "speed_rmse_mps"))
-        ),
+        "speed_rmse_mean_mps": float(np.mean(_metric_values(group, "speed_rmse_mps"))),
         "constraint_violations_total": violations,
         "solver_failures_total": failures,
         "acceptance_passed": passed,
@@ -255,8 +249,7 @@ def _save_summary_plot(
     means = [row["lateral_rmse_mean_m"] for row in summaries]
     stds = [row["lateral_rmse_std_m"] for row in summaries]
     colors = [
-        "tab:blue" if row["acceptance_passed"] else "tab:red"
-        for row in summaries
+        "tab:blue" if row["acceptance_passed"] else "tab:red" for row in summaries
     ]
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.bar(np.arange(len(labels)), means, yerr=stds, capsize=5, color=colors)

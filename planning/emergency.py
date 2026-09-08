@@ -42,7 +42,9 @@ def minimum_obstacle_clearance(
         return float("inf")
     minimum = float("inf")
     for obstacle in obstacles:
-        obstacle_s = obstacle.s + obstacle.speed * (prediction_start_time + trajectory.time)
+        obstacle_s = obstacle.s + obstacle.speed * (
+            prediction_start_time + trajectory.time
+        )
         normalized = np.hypot(
             (trajectory.s - obstacle_s) / obstacle.longitudinal_clearance,
             (trajectory.d - obstacle.d) / obstacle.lateral_clearance,
@@ -84,7 +86,9 @@ def generate_emergency_stop_trajectory(
     stop_time = current_speed / abs(deceleration) if current_speed > 0.0 else 0.0
     stop_distance = float(s[-1] - s0)
     analytical_stop_distance = current_speed**2 / (2.0 * abs(deceleration))
-    clearance = minimum_obstacle_clearance(trajectory, obstacles or [], prediction_start_time)
+    clearance = minimum_obstacle_clearance(
+        trajectory, obstacles or [], prediction_start_time
+    )
     return EmergencyStopPlan(
         trajectory=trajectory,
         deceleration=deceleration,
@@ -119,8 +123,16 @@ def select_with_emergency_fallback(
         )
     except RuntimeError:
         emergency = generate_emergency_stop_trajectory(
-            road, duration, dt, s0, d0, current_speed, deceleration,
-            obstacles, prediction_start_time, min_normalized_clearance,
+            road,
+            duration,
+            dt,
+            s0,
+            d0,
+            current_speed,
+            deceleration,
+            obstacles,
+            prediction_start_time,
+            min_normalized_clearance,
         )
         return PlanningDecision(
             mode="emergency_fallback",

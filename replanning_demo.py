@@ -18,7 +18,9 @@ from planning import (
 )
 
 
-def _decision_label(current_d: float, target_d: float, target_speed: float, desired_speed: float) -> str:
+def _decision_label(
+    current_d: float, target_d: float, target_speed: float, desired_speed: float
+) -> str:
     if target_d > current_d + 0.7:
         return "lane_change_left"
     if target_d < current_d - 0.7:
@@ -83,7 +85,9 @@ def _update_commitment(
         committed_lane = active_plan.target_d
         remaining_maneuver_time = active_plan.lane_change_duration
     if committed_lane is not None:
-        remaining_maneuver_time = max(replan_interval, remaining_maneuver_time - replan_interval)
+        remaining_maneuver_time = max(
+            replan_interval, remaining_maneuver_time - replan_interval
+        )
     return committed_lane, remaining_maneuver_time
 
 
@@ -106,7 +110,9 @@ def _decision_record(
         "ego_d_m": ego_d,
         "ego_speed_mps": ego_speed,
         "planner_mode": planning_decision.mode,
-        "decision": "emergency_stop" if emergency_mode else _decision_label(
+        "decision": "emergency_stop"
+        if emergency_mode
+        else _decision_label(
             ego_d,
             active_plan.target_d,
             active_plan.target_speed,
@@ -114,7 +120,9 @@ def _decision_record(
         ),
         "target_d_m": ego_d if emergency_mode else active_plan.target_d,
         "target_speed_mps": 0.0 if emergency_mode else active_plan.target_speed,
-        "lane_change_duration_s": 0.0 if emergency_mode else active_plan.lane_change_duration,
+        "lane_change_duration_s": 0.0
+        if emergency_mode
+        else active_plan.lane_change_duration,
         "feasible_candidates": sum(candidate.feasible for candidate in candidates),
         "selected_cost": float("nan") if emergency_mode else active_plan.total_cost,
         "predicted_min_clearance": (
@@ -122,7 +130,9 @@ def _decision_record(
             if emergency_mode
             else active_plan.min_normalized_clearance
         ),
-        "collision_avoidable": True if not emergency_mode else emergency_plan.collision_avoidable,
+        "collision_avoidable": True
+        if not emergency_mode
+        else emergency_plan.collision_avoidable,
     }
 
 
@@ -243,18 +253,20 @@ def run_replanning_demo(
 
     for step in range(round(sim_cfg.duration / sim_cfg.dt)):
         if step % replan_steps == 0:
-            planning_decision, committed_lane, remaining_maneuver_time, record = _replan_once(
-                road=road,
-                state=state,
-                current_time=step * sim_cfg.dt,
-                planning_duration=planning_duration,
-                sim_cfg=sim_cfg,
-                vehicle_cfg=vehicle_cfg,
-                settings=settings,
-                obstacles=obstacles,
-                committed_lane=committed_lane,
-                remaining_maneuver_time=remaining_maneuver_time,
-                replan_interval=replan_interval,
+            planning_decision, committed_lane, remaining_maneuver_time, record = (
+                _replan_once(
+                    road=road,
+                    state=state,
+                    current_time=step * sim_cfg.dt,
+                    planning_duration=planning_duration,
+                    sim_cfg=sim_cfg,
+                    vehicle_cfg=vehicle_cfg,
+                    settings=settings,
+                    obstacles=obstacles,
+                    committed_lane=committed_lane,
+                    remaining_maneuver_time=remaining_maneuver_time,
+                    replan_interval=replan_interval,
+                )
             )
             active_trajectory = planning_decision.trajectory
             emergency_mode = planning_decision.mode == "emergency_fallback"
@@ -262,7 +274,9 @@ def run_replanning_demo(
             decisions.append(record)
             plan_step = 0
 
-        references = active_trajectory.states[plan_step + 1 : plan_step + 1 + mpc_cfg.horizon]
+        references = active_trajectory.states[
+            plan_step + 1 : plan_step + 1 + mpc_cfg.horizon
+        ]
         active_controller = emergency_controller if emergency_mode else controller
         control = active_controller.control(state.as_array(), references)
         solver_failures += int(not active_controller.last_success)
@@ -273,7 +287,9 @@ def run_replanning_demo(
 
     states_array = np.asarray(states)
     controls_array = np.asarray(controls)
-    actual_clearance = _minimum_actual_clearance(states_array, road, obstacles, sim_cfg.dt)
+    actual_clearance = _minimum_actual_clearance(
+        states_array, road, obstacles, sim_cfg.dt
+    )
     _save_decisions(output_dir / "metrics" / "replanning_decisions.csv", decisions)
     _save_replanning_plot(
         output_dir / "figures" / "receding_horizon_replanning.png",
@@ -305,7 +321,8 @@ def _minimum_actual_clearance(states, road, obstacles, dt):
         time = index * dt
         for obstacle in obstacles:
             distance = np.hypot(
-                (ego_s - (obstacle.s + obstacle.speed * time)) / obstacle.longitudinal_clearance,
+                (ego_s - (obstacle.s + obstacle.speed * time))
+                / obstacle.longitudinal_clearance,
                 (ego_d - obstacle.d) / obstacle.lateral_clearance,
             )
             minimum = min(minimum, float(distance))
@@ -326,14 +343,26 @@ def _save_replanning_plot(path, states, controls, decisions, road, obstacles, co
     ego_s_d = np.array([road.cartesian_to_frenet(x, y) for x, y in states[:, :2]])
     fig, axes = plt.subplots(2, 1, figsize=(11, 8), sharex=False)
     axes[0].plot(road.x, road.y, "--", color="0.65", label="road centerline")
-    axes[0].plot(states[:, 0], states[:, 1], color="tab:blue", linewidth=2.5, label="ego trajectory")
+    axes[0].plot(
+        states[:, 0],
+        states[:, 1],
+        color="tab:blue",
+        linewidth=2.5,
+        label="ego trajectory",
+    )
     for index, obstacle in enumerate(obstacles):
         obstacle_s = obstacle.s + obstacle.speed * time
         ox, oy = road.frenet_to_cartesian(obstacle_s, np.full_like(time, obstacle.d))
         axes[0].plot(ox, oy, ":", linewidth=2, label=f"obstacle {index + 1} prediction")
         axes[0].scatter(ox[0], oy[0], marker="X", s=100, color="black")
-    axes[0].set(xlabel="x [m]", ylabel="y [m]", title="Closed-loop trajectory with repeated Frenet replanning")
-    axes[0].set_xlim(float(np.min(states[:, 0])) - 3.0, float(np.max(states[:, 0])) + 15.0)
+    axes[0].set(
+        xlabel="x [m]",
+        ylabel="y [m]",
+        title="Closed-loop trajectory with repeated Frenet replanning",
+    )
+    axes[0].set_xlim(
+        float(np.min(states[:, 0])) - 3.0, float(np.max(states[:, 0])) + 15.0
+    )
     axes[0].set_ylim(-5.0, 10.0)
     axes[0].grid(True)
     axes[0].legend(ncol=2)
@@ -353,8 +382,12 @@ def _save_replanning_plot(path, states, controls, decisions, road, obstacles, co
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run configured receding-horizon replanning demo")
-    parser.add_argument("--config", type=Path, default=Path("configs/replanning_demo.json"))
+    parser = argparse.ArgumentParser(
+        description="Run configured receding-horizon replanning demo"
+    )
+    parser.add_argument(
+        "--config", type=Path, default=Path("configs/replanning_demo.json")
+    )
     parser.add_argument("--output", type=Path, default=Path("results"))
     args = parser.parse_args()
     run_replanning_demo(args.output, args.config)

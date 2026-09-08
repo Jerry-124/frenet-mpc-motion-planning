@@ -11,7 +11,9 @@ class ReferencePath:
     yaw: np.ndarray
 
     @classmethod
-    def sinusoidal(cls, length: float = 140.0, amplitude: float = 2.0, wavelength: float = 70.0):
+    def sinusoidal(
+        cls, length: float = 140.0, amplitude: float = 2.0, wavelength: float = 70.0
+    ):
         raw_x = np.linspace(0.0, length, 2500)
         raw_y = amplitude * np.sin(2.0 * np.pi * raw_x / wavelength)
         ds = np.hypot(np.diff(raw_x), np.diff(raw_y))

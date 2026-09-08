@@ -23,7 +23,9 @@ class KinematicBicycle:
         self.config = config
         self.dt = dt
 
-    def step_array_unclipped(self, state: np.ndarray, control: np.ndarray) -> np.ndarray:
+    def step_array_unclipped(
+        self, state: np.ndarray, control: np.ndarray
+    ) -> np.ndarray:
         """Prediction step without state clipping, for explicit MPC constraints."""
         x, y, yaw, speed = state
         accel = np.clip(control[0], self.config.min_accel, self.config.max_accel)
@@ -41,7 +43,9 @@ class KinematicBicycle:
 
     def step_array(self, state: np.ndarray, control: np.ndarray) -> np.ndarray:
         next_state = self.step_array_unclipped(state, control)
-        next_state[3] = np.clip(next_state[3], self.config.min_speed, self.config.max_speed)
+        next_state[3] = np.clip(
+            next_state[3], self.config.min_speed, self.config.max_speed
+        )
         return next_state
 
     def step(self, state: VehicleState, accel: float, steer: float) -> VehicleState:
