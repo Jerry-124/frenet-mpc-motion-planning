@@ -59,11 +59,7 @@ ruff check .
 
 Outputs are written to `results/metrics/` and `results/figures/`.
 
-For the complete methodology, validation matrix, limitations, and resume/interview material, see:
-
-- [`docs/PROJECT_REPORT.md`](docs/PROJECT_REPORT.md)
-- [`docs/RESUME_INTERVIEW_GUIDE_CN.md`](docs/RESUME_INTERVIEW_GUIDE_CN.md)
-- [`CHANGELOG.md`](CHANGELOG.md)
+For release history and portfolio hardening notes, see [`CHANGELOG.md`](CHANGELOG.md).
 
 Every executable also accepts an explicit configuration and output directory:
 
@@ -261,8 +257,6 @@ sensitivity_benchmark.py   MPC horizon/weight trade-off experiment
 main.py                    closed-loop simulation and plots
 tests/                     unit and quantitative regression gates
 .github/workflows/ci.yml   Python 3.10/3.12 pytest, compile, dependency, and Ruff CI
-docs/PROJECT_REPORT.md     consolidated methodology and results report
-docs/RESUME_INTERVIEW_GUIDE_CN.md resume bullets and interview preparation
 CHANGELOG.md               release history and portfolio hardening notes
 ```
 
@@ -276,6 +270,6 @@ The ego vehicle starts with a deliberate `-0.35 m` lateral disturbance, tracks a
 
 ## Current completion status
 
-The **V1.1.0** software baseline is portfolio-ready: initial modeling, P0 safety corrections, P1 controller analysis/constraints, P2 dynamic-model/configuration/regression work, solver-failure hardening, physical-parameter validation, consolidated reporting, and resume/interview documentation are complete. The suite currently contains **27 pytest tests**, including deterministic acceptance gates for the baseline controller, predicted speed constraints, per-axle friction circles, steering-rate correction, friction-aware low-μ correction, robustness aggregation, lane-change-duration parameter propagation, invalid physical configurations, and NMPC solver-failure/non-finite-output handling. GitHub Actions runs the full suite on every push to `main` and every pull request targeting `main` on Python 3.10 and 3.12, together with compile, dependency-consistency, and Ruff checks.
+The **V1.1.0** software baseline is portfolio-ready: initial modeling, P0 safety corrections, P1 controller analysis/constraints, P2 dynamic-model/configuration/regression work, solver-failure hardening, physical-parameter validation and repository-level reporting are complete. The suite currently contains **27 pytest tests**, including deterministic acceptance gates for the baseline controller, predicted speed constraints, per-axle friction circles, steering-rate correction, friction-aware low-μ correction, robustness aggregation, lane-change-duration parameter propagation, invalid physical configurations, and NMPC solver-failure/non-finite-output handling. GitHub Actions runs the full suite on every push to `main` and every pull request targeting `main` on Python 3.10 and 3.12, together with compile, dependency-consistency, and Ruff checks.
 
 Research extensions remain isolated from V1.1.0 on `research/robust-cbf-nmpc-v2`, whose roadmap targets friction-envelope constraints, CBF safety, robust uncertainty handling, risk-aware scoring, realistic scenario benchmarks, and publication-grade ablations. Hardware-oriented validation remains outside this software-model scope.
