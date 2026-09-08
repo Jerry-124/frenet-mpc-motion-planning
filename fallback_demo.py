@@ -125,8 +125,11 @@ def _save_plot(path, road, candidates, emergency, obstacles, states, dt):
         x, y = road.frenet_to_cartesian(np.array([obstacle.s]), np.array([obstacle.d]))
         ax.scatter(x, y, marker="X", s=170, color="black", zorder=5, label="blocked lanes" if index == 0 else None)
     ax.set(xlabel="x [m]", ylabel="y [m]", title="No feasible candidate: emergency fallback")
-    ax.set_xlim(-2.0, 38.0); ax.set_ylim(-4.0, 10.0); ax.set_aspect("equal", adjustable="box")
-    ax.grid(True); ax.legend(loc="upper left", ncol=2)
+    ax.set_xlim(-2.0, 38.0)
+    ax.set_ylim(-4.0, 10.0)
+    ax.set_aspect("equal", adjustable="box")
+    ax.grid(True)
+    ax.legend(loc="upper left", ncol=2)
 
     reference_time = emergency.time
     actual_time = np.arange(len(states)) * dt
@@ -134,8 +137,11 @@ def _save_plot(path, road, candidates, emergency, obstacles, states, dt):
     axes[1].plot(actual_time, states[:, 3], linewidth=2.0, label="actual speed")
     axes[1].axhline(0.0, color="0.5", linewidth=0.8)
     axes[1].set(xlabel="time [s]", ylabel="speed [m/s]", title="Maximum-deceleration stop profile")
-    axes[1].grid(True); axes[1].legend()
-    fig.tight_layout(); fig.savefig(path, dpi=170); plt.close(fig)
+    axes[1].grid(True)
+    axes[1].legend()
+    fig.tight_layout()
+    fig.savefig(path, dpi=170)
+    plt.close(fig)
 
 
 if __name__ == "__main__":
