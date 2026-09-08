@@ -61,14 +61,20 @@ def run_benchmark(output_dir: Path = Path("results"), config_path: Path = Path("
 def save_comparison_plots(directory: Path, rows: list[dict], nominal_results: dict, scenarios, controllers, comparison_scenario):
     directory.mkdir(parents=True, exist_ok=True)
     labels = [scenario["name"] for scenario in scenarios]
-    x = np.arange(len(labels)); width = 0.36
+    x = np.arange(len(labels))
+    width = 0.36
     fig, ax = plt.subplots(figsize=(11, 5))
     for offset, controller in zip((-width / 2, width / 2), controllers):
         values = [row["lateral_rmse_m"] for row in rows if row["controller"] == controller]
         ax.bar(x + offset, values, width, label=controller)
-    ax.set_ylabel("lateral RMSE [m]"); ax.set_xticks(x, labels, rotation=15)
-    ax.set_title("Controller robustness across scenarios"); ax.grid(axis="y", alpha=0.3); ax.legend()
-    fig.tight_layout(); fig.savefig(directory / "controller_benchmark.png", dpi=160); plt.close(fig)
+    ax.set_ylabel("lateral RMSE [m]")
+    ax.set_xticks(x, labels, rotation=15)
+    ax.set_title("Controller robustness across scenarios")
+    ax.grid(axis="y", alpha=0.3)
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(directory / "controller_benchmark.png", dpi=160)
+    plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(10, 5))
     reference = nominal_results["nmpc"].reference
@@ -77,8 +83,12 @@ def save_comparison_plots(directory: Path, rows: list[dict], nominal_results: di
         states = nominal_results[controller].states
         ax.plot(states[:, 0], states[:, 1], label=controller)
     ax.set(xlabel="x [m]", ylabel="y [m]", title=f"Trajectory comparison: {comparison_scenario}")
-    ax.axis("equal"); ax.grid(True); ax.legend(); fig.tight_layout()
-    fig.savefig(directory / "controller_trajectory_comparison.png", dpi=160); plt.close(fig)
+    ax.axis("equal")
+    ax.grid(True)
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(directory / "controller_trajectory_comparison.png", dpi=160)
+    plt.close(fig)
 
 
 if __name__ == "__main__":
