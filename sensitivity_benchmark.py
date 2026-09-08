@@ -51,7 +51,8 @@ def run_sensitivity_benchmark(
     metrics_dir.mkdir(parents=True, exist_ok=True)
     with (metrics_dir / "mpc_parameter_sensitivity.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=rows[0].keys())
-        writer.writeheader(); writer.writerows(rows)
+        writer.writeheader()
+        writer.writerows(rows)
     _save_plot(output_dir / "figures" / "mpc_parameter_sensitivity.png", rows, lateral_limit)
     print(json.dumps(rows, indent=2))
     return rows
@@ -75,7 +76,9 @@ def _save_plot(path: Path, rows: list[dict], lateral_limit: float) -> None:
         runtime_ax.set_ylabel("mean control time [ms]")
         lines = ax.get_lines()[:1] + runtime_ax.get_lines()
         ax.legend(lines, [line.get_label() for line in lines], fontsize=8, loc="best")
-    fig.tight_layout(); fig.savefig(path, dpi=170); plt.close(fig)
+    fig.tight_layout()
+    fig.savefig(path, dpi=170)
+    plt.close(fig)
 
 
 if __name__ == "__main__":
