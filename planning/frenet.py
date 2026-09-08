@@ -61,13 +61,23 @@ def generate_frenet_trajectory(
 ) -> FrenetTrajectory:
     """Generate a smooth trajectory from the current Frenet state."""
     time = np.arange(0.0, duration + 0.5 * dt, dt)
-    speed_duration = lane_change_duration if speed_transition_duration is None else speed_transition_duration
+    speed_duration = (
+        lane_change_duration
+        if speed_transition_duration is None
+        else speed_transition_duration
+    )
     speed_tau = np.clip(time / max(speed_duration, dt), 0.0, 1.0)
-    longitudinal_speed = current_speed + (target_speed - current_speed) * _quintic_blend(speed_tau)
+    longitudinal_speed = current_speed + (
+        target_speed - current_speed
+    ) * _quintic_blend(speed_tau)
     s = np.empty_like(time)
     s[0] = s0
-    s[1:] = s0 + np.cumsum(0.5 * (longitudinal_speed[:-1] + longitudinal_speed[1:]) * dt)
-    lateral_tau = np.clip((time - lane_change_start_time) / max(lane_change_duration, dt), 0.0, 1.0)
+    s[1:] = s0 + np.cumsum(
+        0.5 * (longitudinal_speed[:-1] + longitudinal_speed[1:]) * dt
+    )
+    lateral_tau = np.clip(
+        (time - lane_change_start_time) / max(lane_change_duration, dt), 0.0, 1.0
+    )
     d = d0 + (target_d - d0) * _quintic_blend(lateral_tau)
     x, y = road.frenet_to_cartesian(s, d)
     yaw = np.unwrap(np.arctan2(np.gradient(y, time), np.gradient(x, time)))

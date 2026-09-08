@@ -45,9 +45,13 @@ class ModelAndPlannerTests(unittest.TestCase):
         self.assertEqual(fallback.simulation.duration, 5.0)
         self.assertEqual(len(fallback.raw["planner"]["obstacles"]), 2)
         for name in (
-            "benchmark.json", "planner_demo.json", "replanning_demo.json",
-            "replanning_blocked_validation.json", "robustness_benchmark.json",
-            "dynamic_model_benchmark.json", "sensitivity_benchmark.json",
+            "benchmark.json",
+            "planner_demo.json",
+            "replanning_demo.json",
+            "replanning_blocked_validation.json",
+            "robustness_benchmark.json",
+            "dynamic_model_benchmark.json",
+            "sensitivity_benchmark.json",
         ):
             self.assertEqual(load_project_config(f"configs/{name}").schema_version, 1)
 
@@ -65,7 +69,10 @@ class ModelAndPlannerTests(unittest.TestCase):
             (RoadConfig, {"length_m": 0.0}),
         )
         for constructor, values in invalid_cases:
-            with self.subTest(constructor=constructor.__name__, values=values), self.assertRaises(ValueError):
+            with (
+                self.subTest(constructor=constructor.__name__, values=values),
+                self.assertRaises(ValueError),
+            ):
                 constructor(**values)
 
     def test_nonphysical_dynamic_vehicle_values_are_rejected(self):
@@ -139,7 +146,14 @@ class ModelAndPlannerTests(unittest.TestCase):
 
     def test_lane_change_boundary_conditions(self):
         cfg = SimulationConfig()
-        path = generate_lane_change(ReferencePath.sinusoidal(), cfg.duration, cfg.dt, cfg.target_speed, cfg.lane_width, cfg.lane_change_duration)
+        path = generate_lane_change(
+            ReferencePath.sinusoidal(),
+            cfg.duration,
+            cfg.dt,
+            cfg.target_speed,
+            cfg.lane_width,
+            cfg.lane_change_duration,
+        )
         self.assertTrue(np.isclose(path.d[0], 0.0))
         self.assertTrue(np.isclose(path.d[-1], cfg.lane_width))
         self.assertTrue(np.all(np.diff(path.s) > 0.0))
@@ -176,8 +190,13 @@ class ModelAndPlannerTests(unittest.TestCase):
         settings = project.raw["dynamic_benchmark"]["friction_planner"]
         road = ReferencePath.sinusoidal(amplitude=4.0)
         plan = select_friction_aware_trajectory(
-            road, duration=8.8, dt=0.1, current_speed=12.0, desired_speed=12.0,
-            target_d=3.5, friction_coefficient=0.3,
+            road,
+            duration=8.8,
+            dt=0.1,
+            current_speed=12.0,
+            desired_speed=12.0,
+            target_d=3.5,
+            friction_coefficient=0.3,
             target_speeds=tuple(settings["target_speeds_mps"]),
             lane_change_durations=tuple(settings["lane_change_durations_s"]),
             lane_change_start_times=tuple(settings["lane_change_start_times_s"]),
@@ -186,34 +205,55 @@ class ModelAndPlannerTests(unittest.TestCase):
             min_longitudinal_acceleration=project.vehicle.min_accel,
             max_longitudinal_acceleration=project.vehicle.max_accel,
         )
-        self.assertLessEqual(plan.peak_combined_acceleration, plan.friction_acceleration_budget)
-        self.assertLessEqual(plan.peak_longitudinal_acceleration, abs(project.vehicle.min_accel))
+        self.assertLessEqual(
+            plan.peak_combined_acceleration, plan.friction_acceleration_budget
+        )
+        self.assertLessEqual(
+            plan.peak_longitudinal_acceleration, abs(project.vehicle.min_accel)
+        )
         self.assertLess(plan.target_speed, 12.0)
 
     def test_candidate_planner_avoids_blocked_lane(self):
         road = ReferencePath.sinusoidal(amplitude=0.0)
         candidates = generate_and_score_candidates(
-            road, duration=6.0, dt=0.1,
-            target_offsets=(0.0, 3.5), lane_change_durations=(3.0, 4.0),
-            target_speeds=(10.0,), obstacles=[FrenetObstacle(s=30.0, d=0.0)],
+            road,
+            duration=6.0,
+            dt=0.1,
+            target_offsets=(0.0, 3.5),
+            lane_change_durations=(3.0, 4.0),
+            target_speeds=(10.0,),
+            obstacles=[FrenetObstacle(s=30.0, d=0.0)],
             desired_speed=10.0,
         )
         selected = select_best_candidate(candidates)
         self.assertTrue(selected.feasible)
         self.assertEqual(selected.target_d, 3.5)
         self.assertGreater(selected.min_normalized_clearance, 1.0)
-        self.assertTrue(all(not candidate.feasible for candidate in candidates if candidate.target_d == 0.0))
+        self.assertTrue(
+            all(
+                not candidate.feasible
+                for candidate in candidates
+                if candidate.target_d == 0.0
+            )
+        )
 
     def test_emergency_stop_profile(self):
         road = ReferencePath.sinusoidal(amplitude=0.0)
         plan = generate_emergency_stop_trajectory(
-            road, duration=5.0, dt=0.1, s0=0.0, d0=0.0,
-            current_speed=10.0, deceleration=-3.0,
+            road,
+            duration=5.0,
+            dt=0.1,
+            s0=0.0,
+            d0=0.0,
+            current_speed=10.0,
+            deceleration=-3.0,
         )
         self.assertTrue(np.all(np.diff(plan.trajectory.speed) <= 1e-12))
         self.assertTrue(np.all(plan.trajectory.speed >= 0.0))
         self.assertAlmostEqual(plan.trajectory.speed[-1], 0.0)
-        self.assertAlmostEqual(plan.analytical_stop_distance, 10.0**2 / (2.0 * 3.0), delta=0.03)
+        self.assertAlmostEqual(
+            plan.analytical_stop_distance, 10.0**2 / (2.0 * 3.0), delta=0.03
+        )
         self.assertAlmostEqual(plan.stop_distance, 17.17, delta=0.03)
 
     def test_emergency_controller_overrides_longitudinal_tracking(self):
@@ -227,7 +267,9 @@ class ModelAndPlannerTests(unittest.TestCase):
     def test_replanning_loop_integrates_emergency_fallback(self):
         with TemporaryDirectory() as directory:
             summary = run_replanning_demo(
-                Path(directory), Path("configs/replanning_blocked_validation.json"), False,
+                Path(directory),
+                Path("configs/replanning_blocked_validation.json"),
+                False,
             )
         self.assertGreater(summary["emergency_fallback_events"], 0)
         self.assertEqual(summary["final_speed_mps"], 0.0)
@@ -237,25 +279,43 @@ class ModelAndPlannerTests(unittest.TestCase):
         road = ReferencePath.sinusoidal(amplitude=0.0)
         obstacles = [FrenetObstacle(s=27.0, d=0.0), FrenetObstacle(s=27.0, d=3.5)]
         candidates = generate_and_score_candidates(
-            road, duration=5.8, dt=0.1,
-            target_offsets=(0.0, 3.5), lane_change_durations=(3.0, 4.0),
-            target_speeds=(6.0, 10.0), obstacles=obstacles, desired_speed=10.0,
+            road,
+            duration=5.8,
+            dt=0.1,
+            target_offsets=(0.0, 3.5),
+            lane_change_durations=(3.0, 4.0),
+            target_speeds=(6.0, 10.0),
+            obstacles=obstacles,
+            desired_speed=10.0,
             current_speed=10.0,
         )
         decision = select_with_emergency_fallback(
-            candidates, road, duration=5.8, dt=0.1, s0=0.0, d0=0.0,
-            current_speed=10.0, obstacles=obstacles,
+            candidates,
+            road,
+            duration=5.8,
+            dt=0.1,
+            s0=0.0,
+            d0=0.0,
+            current_speed=10.0,
+            obstacles=obstacles,
         )
         self.assertFalse(any(candidate.feasible for candidate in candidates))
         self.assertEqual(decision.mode, "emergency_fallback")
         self.assertTrue(decision.emergency_plan.collision_avoidable)
-        self.assertEqual(decision.transition_log, "normal_planning -> emergency_fallback")
+        self.assertEqual(
+            decision.transition_log, "normal_planning -> emergency_fallback"
+        )
 
     def test_emergency_stop_reports_unavoidable_collision(self):
         road = ReferencePath.sinusoidal(amplitude=0.0)
         plan = generate_emergency_stop_trajectory(
-            road, duration=5.0, dt=0.1, s0=0.0, d0=0.0,
-            current_speed=10.0, deceleration=-3.0,
+            road,
+            duration=5.0,
+            dt=0.1,
+            s0=0.0,
+            d0=0.0,
+            current_speed=10.0,
+            deceleration=-3.0,
             obstacles=[FrenetObstacle(s=10.0, d=0.0)],
         )
         self.assertFalse(plan.collision_avoidable)

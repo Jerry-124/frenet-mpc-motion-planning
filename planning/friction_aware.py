@@ -15,7 +15,9 @@ class FrictionPlanCostWeights:
     friction_utilization: float = 0.1
 
 
-def friction_plan_cost_weights_from_mapping(values: dict | None) -> FrictionPlanCostWeights:
+def friction_plan_cost_weights_from_mapping(
+    values: dict | None,
+) -> FrictionPlanCostWeights:
     return FrictionPlanCostWeights(**(values or {}))
 
 
@@ -161,14 +163,17 @@ def _evaluate_candidate(
         start_time,
         speed_transition_duration,
     )
-    longitudinal, peak_lateral, peak_longitudinal, peak_combined = (
-        _acceleration_peaks(trajectory)
+    longitudinal, peak_lateral, peak_longitudinal, peak_combined = _acceleration_peaks(
+        trajectory
     )
-    if not _longitudinal_feasible(
-        longitudinal,
-        min_longitudinal_acceleration,
-        max_longitudinal_acceleration,
-    ) or peak_combined > budget + 1e-9:
+    if (
+        not _longitudinal_feasible(
+            longitudinal,
+            min_longitudinal_acceleration,
+            max_longitudinal_acceleration,
+        )
+        or peak_combined > budget + 1e-9
+    ):
         return None
     return _CandidateEvaluation(
         cost=_candidate_cost(

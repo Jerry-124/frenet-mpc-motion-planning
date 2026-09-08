@@ -30,7 +30,9 @@ def run_closed_loop(
 ) -> SimulationResult:
     sim_cfg = sim_cfg or SimulationConfig()
     vehicle_cfg, mpc_cfg = vehicle_cfg or VehicleConfig(), mpc_cfg or MPCConfig()
-    road = ReferencePath.sinusoidal(length=road_length, amplitude=road_amplitude, wavelength=road_wavelength)
+    road = ReferencePath.sinusoidal(
+        length=road_length, amplitude=road_amplitude, wavelength=road_wavelength
+    )
     preview_duration = mpc_cfg.horizon * sim_cfg.dt
     trajectory = generate_lane_change(
         road,
@@ -41,8 +43,13 @@ def run_closed_loop(
         sim_cfg.lane_change_duration,
     )
     return track_reference(
-        controller_name, road, trajectory.states, sim_cfg, initial_lateral_offset,
-        vehicle_cfg=vehicle_cfg, mpc_cfg=mpc_cfg,
+        controller_name,
+        road,
+        trajectory.states,
+        sim_cfg,
+        initial_lateral_offset,
+        vehicle_cfg=vehicle_cfg,
+        mpc_cfg=mpc_cfg,
     )
 
 
@@ -69,7 +76,9 @@ def track_reference(
     simulation_steps = round(sim_cfg.duration / sim_cfg.dt)
     required_points = simulation_steps + mpc_cfg.horizon
     if len(reference_states) < required_points:
-        raise ValueError(f"Reference needs at least {required_points} points for a full MPC preview")
+        raise ValueError(
+            f"Reference needs at least {required_points} points for a full MPC preview"
+        )
     initial = reference_states[0].copy()
     initial[1] += initial_lateral_offset
     state = VehicleState(*initial)
@@ -86,6 +95,11 @@ def track_reference(
     states, controls = np.asarray(states), np.asarray(controls)
     reference = reference_states[: simulation_steps + 1]
     metrics = calculate_metrics(
-        states, reference, controls, solver_failures, vehicle_cfg, sim_cfg.dt,
+        states,
+        reference,
+        controls,
+        solver_failures,
+        vehicle_cfg,
+        sim_cfg.dt,
     )
     return SimulationResult(road, reference, states, controls, metrics)

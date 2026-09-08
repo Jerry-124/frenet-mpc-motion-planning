@@ -115,7 +115,9 @@ def _build_reference_trajectory(scenario, project, sim_cfg, settings, road):
         safety_factor=planner_cfg["safety_factor"],
         min_longitudinal_acceleration=project.vehicle.min_accel,
         max_longitudinal_acceleration=project.vehicle.max_accel,
-        cost_weights=friction_plan_cost_weights_from_mapping(planner_cfg.get("cost_weights")),
+        cost_weights=friction_plan_cost_weights_from_mapping(
+            planner_cfg.get("cost_weights")
+        ),
     )
     return planning_result.trajectory, planning_result
 
@@ -396,7 +398,9 @@ def _save_trajectory_plot(path: Path, trajectories: dict, rows: list[dict], dt: 
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run configured dynamic-plant benchmark")
+    parser = argparse.ArgumentParser(
+        description="Run configured dynamic-plant benchmark"
+    )
     parser.add_argument(
         "--config",
         type=Path,

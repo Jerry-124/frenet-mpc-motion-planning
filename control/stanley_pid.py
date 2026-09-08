@@ -45,13 +45,16 @@ class StanleyPIDController:
         )
 
         speed_error = float(target[3] - state[3])
-        self.integral_error = np.clip(self.integral_error + speed_error * self.dt, -5.0, 5.0)
+        self.integral_error = np.clip(
+            self.integral_error + speed_error * self.dt, -5.0, 5.0
+        )
         derivative = (speed_error - self.previous_speed_error) / self.dt
         self.previous_speed_error = speed_error
         accel = np.clip(
-            self.kp * speed_error + self.ki * self.integral_error + self.kd * derivative,
+            self.kp * speed_error
+            + self.ki * self.integral_error
+            + self.kd * derivative,
             self.vehicle.min_accel,
             self.vehicle.max_accel,
         )
         return np.array([accel, steer], dtype=float)
-

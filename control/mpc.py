@@ -35,11 +35,15 @@ class NonlinearMPC:
             predicted.append(current)
         return np.asarray(predicted)
 
-    def _objective(self, flat_controls: np.ndarray, state: np.ndarray, references: np.ndarray) -> float:
+    def _objective(
+        self, flat_controls: np.ndarray, state: np.ndarray, references: np.ndarray
+    ) -> float:
         controls = flat_controls.reshape(self.config.horizon, 2)
         predicted = self._rollout(state, controls)
         position_error = predicted[:, :2] - references[:, :2]
-        yaw_error = np.array([_angle_error(a, b) for a, b in zip(predicted[:, 2], references[:, 2])])
+        yaw_error = np.array(
+            [_angle_error(a, b) for a, b in zip(predicted[:, 2], references[:, 2])]
+        )
         speed_error = predicted[:, 3] - references[:, 3]
         cost = (
             self.config.q_x * np.sum(position_error[:, 0] ** 2)
@@ -54,9 +58,12 @@ class NonlinearMPC:
         cost += self.config.rd_steer * np.sum(delta[:, 1] ** 2)
         return float(cost)
 
-    def _speed_constraints(self, flat_controls: np.ndarray, state: np.ndarray) -> np.ndarray:
+    def _speed_constraints(
+        self, flat_controls: np.ndarray, state: np.ndarray
+    ) -> np.ndarray:
         predicted_speed = self._rollout(
-            state, flat_controls.reshape(self.config.horizon, 2),
+            state,
+            flat_controls.reshape(self.config.horizon, 2),
         )[:, 3]
         return np.r_[
             predicted_speed - self.vehicle.min_speed,
@@ -70,33 +77,68 @@ class NonlinearMPC:
         steer = float(np.clip(steer, -self.vehicle.max_steer, self.vehicle.max_steer))
         return np.array([accel, steer], dtype=float)
 
-    def control(self, state: np.ndarray, references: np.ndarray, actual_steer: float | None = None) -> np.ndarray:
+    def control(
+        self,
+        state: np.ndarray,
+        references: np.ndarray,
+        actual_steer: float | None = None,
+    ) -> np.ndarray:
         if len(references) < self.config.horizon:
-            references = np.vstack((references, np.repeat(references[-1][None, :], self.config.horizon - len(references), axis=0)))
+            references = np.vstack(
+                (
+                    references,
+                    np.repeat(
+                        references[-1][None, :],
+                        self.config.horizon - len(references),
+                        axis=0,
+                    ),
+                )
+            )
         else:
             references = references[: self.config.horizon]
         guess = np.vstack((self.previous_solution[1:], self.previous_solution[-1]))
-        constraints = [{
-            "type": "ineq",
-            "fun": lambda flat: self._speed_constraints(flat, state),
-        }]
+        constraints = [
+            {
+                "type": "ineq",
+                "fun": lambda flat: self._speed_constraints(flat, state),
+            }
+        ]
         if self.max_steer_rate is not None:
             if actual_steer is None:
-                raise ValueError("actual_steer is required when steering-rate constraints are enabled")
+                raise ValueError(
+                    "actual_steer is required when steering-rate constraints are enabled"
+                )
             steer_step = self.max_steer_rate * self.model.dt
             previous = float(actual_steer)
             for index in range(self.config.horizon):
-                guess[index, 1] = np.clip(guess[index, 1], previous - steer_step, previous + steer_step)
+                guess[index, 1] = np.clip(
+                    guess[index, 1], previous - steer_step, previous + steer_step
+                )
                 previous = guess[index, 1]
-            constraints.append({
-                "type": "ineq",
-                "fun": lambda flat: steer_step - np.abs(
-                    np.diff(np.r_[float(actual_steer), flat.reshape(self.config.horizon, 2)[:, 1]])
-                ),
-            })
+            constraints.append(
+                {
+                    "type": "ineq",
+                    "fun": lambda flat: (
+                        steer_step
+                        - np.abs(
+                            np.diff(
+                                np.r_[
+                                    float(actual_steer),
+                                    flat.reshape(self.config.horizon, 2)[:, 1],
+                                ]
+                            )
+                        )
+                    ),
+                }
+            )
         bounds = []
         for _ in range(self.config.horizon):
-            bounds.extend([(self.vehicle.min_accel, self.vehicle.max_accel), (-self.vehicle.max_steer, self.vehicle.max_steer)])
+            bounds.extend(
+                [
+                    (self.vehicle.min_accel, self.vehicle.max_accel),
+                    (-self.vehicle.max_steer, self.vehicle.max_steer),
+                ]
+            )
         result = minimize(
             self._objective,
             guess.ravel(),
@@ -104,7 +146,11 @@ class NonlinearMPC:
             method="SLSQP",
             bounds=bounds,
             constraints=constraints,
-            options={"maxiter": self.config.max_iterations, "ftol": 1e-3, "disp": False},
+            options={
+                "maxiter": self.config.max_iterations,
+                "ftol": 1e-3,
+                "disp": False,
+            },
         )
         solution_is_valid = bool(result.success and np.all(np.isfinite(result.x)))
         self.last_success = solution_is_valid
@@ -113,5 +159,7 @@ class NonlinearMPC:
             self.previous_solution = result.x.reshape(self.config.horizon, 2)
         else:
             fallback = self._safe_fallback_control(actual_steer)
-            self.previous_solution = np.repeat(fallback[None, :], self.config.horizon, axis=0)
+            self.previous_solution = np.repeat(
+                fallback[None, :], self.config.horizon, axis=0
+            )
         return self.previous_solution[0].copy()

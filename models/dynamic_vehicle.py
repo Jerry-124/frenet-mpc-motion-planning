@@ -55,7 +55,9 @@ class DynamicVehicleState:
     yaw_rate: float = 0.0
 
     def as_array(self) -> np.ndarray:
-        return np.array([self.x, self.y, self.yaw, self.vx, self.vy, self.yaw_rate], dtype=float)
+        return np.array(
+            [self.x, self.y, self.yaw, self.vx, self.vy, self.yaw_rate], dtype=float
+        )
 
     def controller_state(self) -> np.ndarray:
         return np.array([self.x, self.y, self.yaw, self.vx], dtype=float)
@@ -75,8 +77,12 @@ class DynamicBicycle:
 
     def _derivative(self, state: np.ndarray, control: np.ndarray) -> np.ndarray:
         _x, _y, yaw, vx, vy, yaw_rate = state
-        requested_accel = float(np.clip(control[0], self.limits.min_accel, self.limits.max_accel))
-        steer = float(np.clip(control[1], -self.limits.max_steer, self.limits.max_steer))
+        requested_accel = float(
+            np.clip(control[0], self.limits.min_accel, self.limits.max_accel)
+        )
+        steer = float(
+            np.clip(control[1], -self.limits.max_steer, self.limits.max_steer)
+        )
         safe_vx = max(abs(vx), 0.5)
         alpha_front = steer - np.arctan2(vy + self.config.lf * yaw_rate, safe_vx)
         alpha_rear = -np.arctan2(vy - self.config.lr * yaw_rate, safe_vx)
@@ -97,16 +103,25 @@ class DynamicBicycle:
         front_lateral_limit = np.sqrt(max(front_circle**2 - front_longitudinal**2, 0.0))
         rear_lateral_limit = np.sqrt(max(rear_circle**2 - rear_longitudinal**2, 0.0))
         front_force = self._smooth_tire_force(
-            alpha_front, self.config.cornering_stiffness_front, front_lateral_limit,
+            alpha_front,
+            self.config.cornering_stiffness_front,
+            front_lateral_limit,
         )
         rear_force = self._smooth_tire_force(
-            alpha_rear, self.config.cornering_stiffness_rear, rear_lateral_limit,
+            alpha_rear,
+            self.config.cornering_stiffness_rear,
+            rear_lateral_limit,
         )
-        front_utilization = np.hypot(front_longitudinal, front_force) / max(front_circle, 1e-9)
-        rear_utilization = np.hypot(rear_longitudinal, rear_force) / max(rear_circle, 1e-9)
+        front_utilization = np.hypot(front_longitudinal, front_force) / max(
+            front_circle, 1e-9
+        )
+        rear_utilization = np.hypot(rear_longitudinal, rear_force) / max(
+            rear_circle, 1e-9
+        )
         self.max_tire_friction_utilization = max(
             self.max_tire_friction_utilization,
-            float(front_utilization), float(rear_utilization),
+            float(front_utilization),
+            float(rear_utilization),
         )
         accel = total_longitudinal_force / self.config.mass
 
@@ -115,18 +130,26 @@ class DynamicBicycle:
         yaw_dot = yaw_rate
         vx_dot = accel
         vy_dot = (front_force + rear_force) / self.config.mass - vx * yaw_rate
-        yaw_rate_dot = (self.config.lf * front_force - self.config.lr * rear_force) / self.config.yaw_inertia
+        yaw_rate_dot = (
+            self.config.lf * front_force - self.config.lr * rear_force
+        ) / self.config.yaw_inertia
         return np.array([x_dot, y_dot, yaw_dot, vx_dot, vy_dot, yaw_rate_dot])
 
     @staticmethod
-    def _smooth_tire_force(slip_angle: float, cornering_stiffness: float, limit: float) -> float:
+    def _smooth_tire_force(
+        slip_angle: float, cornering_stiffness: float, limit: float
+    ) -> float:
         if limit <= 1e-9:
             return 0.0
         return float(limit * np.tanh(cornering_stiffness * slip_angle / limit))
 
-    def step(self, state: DynamicVehicleState, accel: float, steer: float) -> DynamicVehicleState:
+    def step(
+        self, state: DynamicVehicleState, accel: float, steer: float
+    ) -> DynamicVehicleState:
         values = state.as_array()
-        desired_steer = float(np.clip(steer, -self.limits.max_steer, self.limits.max_steer))
+        desired_steer = float(
+            np.clip(steer, -self.limits.max_steer, self.limits.max_steer)
+        )
         if self.config.max_steer_rate_rad_s is None:
             self.actual_steer = desired_steer
         else:

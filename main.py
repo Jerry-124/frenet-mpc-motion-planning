@@ -11,23 +11,41 @@ from planning import ReferencePath
 from simulation import run_closed_loop
 
 
-def run_simulation(output_dir: Path = Path("results"), config_path: Path = Path("configs/default.json")) -> dict:
+def run_simulation(
+    output_dir: Path = Path("results"), config_path: Path = Path("configs/default.json")
+) -> dict:
     config = load_project_config(config_path)
     result = run_closed_loop(
-        "nmpc", config.simulation, config.road.amplitude_m,
-        config.road.initial_lateral_offset_m, config.vehicle, config.mpc,
-        config.road.wavelength_m, config.road.length_m,
+        "nmpc",
+        config.simulation,
+        config.road.amplitude_m,
+        config.road.initial_lateral_offset_m,
+        config.vehicle,
+        config.mpc,
+        config.road.wavelength_m,
+        config.road.length_m,
     )
     save_metrics(result.metrics, output_dir / "metrics" / "mpc_evaluation.csv")
     save_plots(
-        output_dir / "figures", result.road, result.reference, result.states,
-        result.controls, config.simulation.dt,
+        output_dir / "figures",
+        result.road,
+        result.reference,
+        result.states,
+        result.controls,
+        config.simulation.dt,
     )
     print(json.dumps(result.metrics, indent=2))
     return result.metrics
 
 
-def save_plots(directory: Path, road: ReferencePath, reference: np.ndarray, states: np.ndarray, controls: np.ndarray, dt: float):
+def save_plots(
+    directory: Path,
+    road: ReferencePath,
+    reference: np.ndarray,
+    states: np.ndarray,
+    controls: np.ndarray,
+    dt: float,
+):
     directory.mkdir(parents=True, exist_ok=True)
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(road.x, road.y, "--", color="0.65", label="road centerline")
