@@ -120,9 +120,12 @@ def save_planning_plot(path: Path, road, candidates, selected, obstacles, tracke
     ax.set(xlabel="x [m]", ylabel="y [m]", title="Frenet candidate generation, rejection, and selection")
     ax.set_xlim(-5.0, float(np.max(tracked_states[:, 0])) + 10.0)
     ax.set_ylim(-5.0, 12.0)
-    ax.set_aspect("equal", adjustable="box"); ax.grid(True)
+    ax.set_aspect("equal", adjustable="box")
+    ax.grid(True)
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=3)
-    fig.tight_layout(); fig.savefig(path, dpi=170, bbox_inches="tight"); plt.close(fig)
+    fig.tight_layout()
+    fig.savefig(path, dpi=170, bbox_inches="tight")
+    plt.close(fig)
 
 
 if __name__ == "__main__":
