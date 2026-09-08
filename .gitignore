@@ -1,12 +1,16 @@
+# Python caches, environments, and build artifacts
 __pycache__/
 *.py[cod]
 *.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
 .venv/
 venv/
-.pytest_cache/
-.coverage
-.idea/
-.vscode/
+build/
+dist/
+
+# Generated experiment outputs. Curated files already tracked in Git remain versioned.
 results/figures/*.png
 results/metrics/*.csv
 
@@ -25,6 +29,8 @@ credentials.*
 *.credentials
 .streamlit/secrets.toml
 
-# Local/OS artifacts
+# Local editor and OS artifacts
+.idea/
+.vscode/
 .DS_Store
 Thumbs.db
