@@ -2,6 +2,20 @@
 
 All notable portfolio releases are documented here. The `v1.0.0` entry records the first stable project-level portfolio baseline at its historical commit; package-level semantic versioning was unified with the project release line in `v1.1.0`.
 
+## [1.1.1] - 2026-09-08
+
+### Fixed
+- Corrected the six-state dynamic bicycle equations so front-wheel longitudinal/lateral forces are rotated into the vehicle body frame before translational and yaw dynamics are evaluated.
+- Restored the standard body-frame velocity coupling terms in the longitudinal and lateral equations.
+- Regenerated the complete dynamic-model benchmark and figures using the corrected plant.
+
+### Added
+- Five physics-invariant tests covering force-free straight motion, body-frame velocity coupling, front-force steering projection, left/right steering symmetry, and pure longitudinal acceleration.
+
+### Changed
+- Expanded the automated suite from 27 to 32 tests.
+- Updated the documented dynamic-model operating-envelope results to match the corrected plant.
+
 ## [1.1.0] - 2026-09-07
 
 ### Added
