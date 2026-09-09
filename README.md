@@ -1,45 +1,39 @@
-# Autonomous Vehicle Motion Planning & MPC
+# Frenet-Frame Motion Planning and Nonlinear MPC
 
 [![Version](https://img.shields.io/badge/version-v1.1.1-blueviolet)](CHANGELOG.md)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](#quick-start)
 [![CI](https://github.com/Jerry-124/frenet-mpc-motion-planning/actions/workflows/ci.yml/badge.svg)](https://github.com/Jerry-124/frenet-mpc-motion-planning/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](#run)
-[![Tests](https://img.shields.io/badge/tests-32-brightgreen)](#current-completion-status)
+[![Tests](https://img.shields.io/badge/tests-32-brightgreen)](#verification)
 
-An executable baseline for Frenet-frame lane-change trajectory generation and constrained trajectory tracking with nonlinear model predictive control (NMPC).
+A reproducible autonomous-driving software project for Frenet-frame local planning and constrained trajectory tracking with nonlinear model predictive control (NMPC). The repository combines planning, control, robustness evaluation, dynamic-plant model mismatch, actuator constraints, friction-aware adaptation, and emergency fallback in one deterministic benchmark suite.
 
-## Implemented baseline
+## Highlights
 
-- arc-length-parameterized sinusoidal road reference
-- Frenet-to-Cartesian transformation
-- minimum-jerk quintic lateral lane-change profile
-- rear-axle kinematic bicycle model
-- direct-shooting NMPC using SciPy SLSQP
-- Stanley lateral controller with PID speed control as a classical baseline
-- acceleration and steering bounds
-- explicit predicted-speed and steering-rate constraints across the MPC horizon
-- warm-started receding-horizon simulation
-- five-scenario controller benchmark
-- multi-candidate Frenet local planner with moving-obstacle prediction
-- hard road-boundary/collision rejection and interpretable cost breakdown
-- Monte Carlo robustness benchmark with delay compensation
-- six-state dynamic bicycle plant with body-frame force coupling, steering-force projection, smooth nonlinear tire forces, and per-axle friction circles
-- speed/friction/model-mismatch operating-envelope benchmark
-- hard steering-rate constraints initialized from measured actuator state
-- friction-circle-aware speed/timing adaptation with longitudinal acceleration limits
-- online no-feasible-candidate fallback with direct maximum-braking override
-- schema-versioned JSON configuration for every reproducible experiment
-- MPC parameter-sensitivity sweeps
-- quantitative constraint metrics, reproducible figures, regression gates, and CI
+- Frenet-to-Cartesian trajectory generation with minimum-jerk quintic lane changes.
+- Multi-candidate local planning with moving-obstacle prediction and hard collision rejection.
+- Direct-shooting NMPC using SciPy SLSQP with explicit speed, acceleration, steering-angle, and steering-rate constraints.
+- Stanley lateral control with PID speed control as a classical baseline.
+- Receding-horizon replanning with lane-change commitment logic.
+- Deterministic robustness benchmarks for measurement noise, actuator delay, wheelbase mismatch, and combined disturbances.
+- Six-state dynamic bicycle plant with corrected body-frame force coupling, steering-force projection, nonlinear tire saturation, and per-axle friction circles.
+- Steering-rate-aware NMPC and friction-aware speed/timing adaptation for model-mismatch stress cases.
+- Independent maximum-braking fallback when no ordinary candidate is feasible.
+- Schema-versioned JSON experiment configuration, committed metrics and figures, regression gates, and CI.
 
-The state is `z = [x, y, yaw, velocity]`, and the input is `u = [acceleration, steering]`. The controller penalizes Cartesian position, heading and speed errors, control effort, and changes in control input. NMPC deliberately keeps its lightweight kinematic prediction model, while a separate six-state dynamic bicycle plant exposes model-mismatch limits.
+NMPC intentionally retains a lightweight rear-axle kinematic prediction model. A separate dynamic bicycle plant is used to expose the operating envelope and quantify model mismatch rather than hiding it inside the controller model.
 
-## Run
+## Quick Start
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
+```
+
+Run the main experiments:
+
+```bash
 python main.py
 python benchmark.py
 python planner_demo.py
@@ -50,7 +44,7 @@ python fallback_demo.py
 python sensitivity_benchmark.py
 ```
 
-Run the complete automated unit and quantitative regression suite:
+Run verification:
 
 ```bash
 python -m pytest -q
@@ -58,38 +52,35 @@ ruff check .
 ruff format --check .
 ```
 
-Outputs are written to `results/metrics/` and `results/figures/`.
+Experiment outputs are written to `results/metrics/` and `results/figures/`.
 
-For release history and portfolio hardening notes, see [`CHANGELOG.md`](CHANGELOG.md).
+## Experiment Configuration
 
-Every executable also accepts an explicit configuration and output directory:
+All experiment inputs are stored under `configs/` with `schema_version: 1`. `default.json` defines the shared vehicle, simulation, road, and NMPC settings; experiment-specific files contain only scenario definitions or overrides.
 
-```bash
-python main.py --config configs/default.json --output results
-python dynamic_model_benchmark.py --config configs/dynamic_model_benchmark.json
-```
-
-## Versioned experiment configuration
-
-All experiment inputs are stored under `configs/` with `schema_version: 1`. `default.json` is the single source for vehicle limits, simulation timing, road geometry, and MPC weights. Each experiment-specific file uses `extends: "default.json"` and contains only its scenario definitions or overrides.
-
-| Configuration | Controls |
+| Configuration | Purpose |
 |---|---|
-| `default.json` | vehicle, simulation, road, MPC horizon and weights |
-| `benchmark.json` | controller comparison scenarios |
-| `planner_demo.json` | candidate grid, moving obstacles, cost weights and clearance threshold |
-| `replanning_demo.json` | replanning interval, candidates, traffic, cost weights and clearance threshold |
-| `replanning_blocked_validation.json` | online fully blocked-road fallback validation |
-| `robustness_benchmark.json` | seeds, noise/delay cases and acceptance limits |
-| `dynamic_model_benchmark.json` | dynamic vehicle/tire parameters, friction, steering-rate and plant cases |
-| `fallback_demo.json` | fully blocked-road emergency scenario and planner costs |
-| `sensitivity_benchmark.json` | MPC horizon and weight sweeps with acceptance limit |
+| `default.json` | Shared vehicle, road, simulation, and NMPC parameters |
+| `benchmark.json` | NMPC versus Stanley+PID comparison |
+| `planner_demo.json` | Frenet candidate generation and obstacle scoring |
+| `replanning_demo.json` | Closed-loop online replanning |
+| `replanning_blocked_validation.json` | Repeated no-feasible-candidate fallback validation |
+| `robustness_benchmark.json` | Noise, delay, mismatch, and combined robustness cases |
+| `dynamic_model_benchmark.json` | Dynamic bicycle and friction-envelope stress cases |
+| `fallback_demo.json` | Fully blocked-road emergency stopping case |
+| `sensitivity_benchmark.json` | NMPC horizon and weight sweeps |
 
-The loader resolves relative inheritance, converts human-readable steering degrees to radians, checks core keys and physical limits, and rejects unsupported schema versions. Copy an experiment file, change only the desired values, then pass it with `--config`; no Python source edit is required.
+## Verification
 
-## Baseline result
+The current suite contains **32 pytest tests**. GitHub Actions validates Python 3.10 and 3.12 and runs dependency checks, source compilation, pytest, Ruff linting, and Ruff formatting checks.
 
-The checked-in result was generated with Python 3.12, a `0.1 s` sample time, an 8-step horizon, and the default scenario above.
+Regression coverage includes controller constraints, solver-failure fallback, configuration validation, friction-circle enforcement, steering-rate handling, corrected body-frame dynamic-bicycle equations, force projection, left/right steering symmetry, and pure longitudinal acceleration.
+
+## Key Results
+
+### Matched-Model Baseline
+
+The deterministic matched-kinematic benchmark uses a `0.1 s` sample time and an 8-step NMPC horizon.
 
 | Metric | Result |
 |---|---:|
@@ -98,179 +89,93 @@ The checked-in result was generated with Python 3.12, a `0.1 s` sample time, an 
 | Position RMSE | 0.097 m |
 | Heading RMSE | 1.154 deg |
 | Speed RMSE | 0.051 m/s |
-| Input constraint violations | 0 |
-| Predicted speed-state violations | 0 |
-| Solver failures (100 steps) | 0 |
+| Constraint violations | 0 |
+| Solver failures | 0 |
 
-These values are a deterministic software-baseline result from a matched kinematic model. They should not be interpreted as real-vehicle validation; model mismatch, noise, and delay remain future work.
+These are software-model results, not real-vehicle validation. Model mismatch, sensor noise, and actuator delay are evaluated explicitly in the robustness and dynamic-plant benchmarks below.
 
-## Controller benchmark
+### Controller Comparison
 
-`benchmark.py` compares NMPC with Stanley+PID in five combinations of speed and road curvature. Both controllers use the same plant, reference trajectory, initial `-0.35 m` disturbance, limits, and evaluation code.
+Across five configured speed/curvature scenarios:
 
-| Controller | Mean lateral RMSE | Mean simulation runtime* | Constraint violations |
-|---|---:|---:|---:|
-| NMPC | 0.064 m | ≈0.8 s | 0 |
-| Stanley+PID | 0.234 m | 0.004 s | 0 |
+| Controller | Mean Lateral RMSE | Constraint Violations |
+|---|---:|---:|
+| NMPC | 0.064 m | 0 |
+| Stanley+PID | 0.234 m | 0 |
 
-NMPC reduced mean lateral RMSE by approximately 73% in this five-scenario run, while Stanley+PID was substantially cheaper computationally. The largest separation appeared in the high-curvature scenario: `0.063 m` versus `0.352 m` lateral RMSE.
+NMPC reduces mean lateral RMSE by approximately **73%** in this benchmark. The comparison is scenario-specific and is not a general claim that NMPC dominates classical control in all operating conditions.
 
-\* Runtime is a local end-to-end Python measurement for an 8-second simulation, not a hard real-time execution guarantee.
+### Robustness and Delay Compensation
 
-## Frenet candidate planning
+A `200 ms` uncompensated actuator delay increases mean lateral RMSE to `2.202 m`. Delay compensation reduces it to `0.084 m`, approximately a **96.2%** reduction. The combined disturbance case falls from `2.202 m` to `0.115 m` after compensation.
 
-`planner_demo.py` creates 18 candidate trajectories from two target lanes, three lane-change durations, and three target speeds. A slow vehicle is predicted in Frenet coordinates over the planning horizon. Candidates are processed in two stages:
+All run-level results are retained under `results/metrics/` so failures and corrections remain auditable.
 
-1. Hard rejection for road-boundary violations or entry into the obstacle safety ellipse.
-2. Ranking of feasible trajectories using lateral acceleration/jerk, speed error, lane preference, and obstacle-clearance costs.
+### Dynamic-Plant Model Mismatch
 
-In the default scenario, all 9 trajectories that remain in the blocked lane are rejected. The selected trajectory changes to `d = 3.5 m` over `5 s` at `10 m/s`; its normalized obstacle clearance is `2.80` against a conservative feasibility threshold of `1.25`. NMPC then tracks it with `0.063 m` lateral RMSE, zero input-limit violations, and zero solver failures.
+The corrected six-state dynamic bicycle plant separates ordinary tire-model mismatch from two more severe failure mechanisms:
 
-Candidate-level decisions and individual cost terms are exported to `results/metrics/frenet_candidates.csv` so rejected paths and tuning choices remain auditable.
-
-## Receding-horizon replanning
-
-`replanning_demo.py` closes the planning-control loop over 10 seconds. Every second it:
-
-1. projects the measured Cartesian vehicle state back into Frenet coordinates;
-2. predicts two surrounding vehicles over a 5-second horizon;
-3. regenerates and scores lane/speed candidates;
-4. keeps an active lane change committed until completion;
-5. sends only the next segment of the selected trajectory to NMPC.
-
-The default decision sequence is: slow/follow → change left → hold the adjacent lane → return right after passing. The lane-change commitment state prevents repeated polynomial resets from producing an incomplete maneuver.
-
-| Online-planning metric | Result |
-|---|---:|
-| Replanning events | 10 |
-| Minimum actual normalized clearance | 2.45 |
-| Input constraint violations | 0 |
-| NMPC solver failures | 0 |
-| Final speed | 10.13 m/s |
-
-Every online decision—including ego state, selected lane/speed, feasible-candidate count, cost, and predicted clearance—is exported to `results/metrics/replanning_decisions.csv`.
-
-The same online loop is also tested with `configs/replanning_blocked_validation.json`. Both lanes remain blocked, so all five replanning events transition to `emergency_stop`; the independent brake override stops the vehicle with minimum normalized clearance `1.980`, zero constraint violations, and zero solver failures. This confirms that fallback is integrated into repeated planning rather than existing only in the one-shot demo.
-
-## Robustness benchmark and delay compensation
-
-`robustness_benchmark.py` runs seven scenarios with five deterministic seeds each. Disturbances include position/heading/speed measurement noise, a `200 ms` actuator delay, `15%` wheelbase mismatch, and a combined case. Acceptance requires worst-case lateral RMSE ≤ `0.20 m`, worst-case position error ≤ `0.80 m`, zero input-limit violations, and zero solver failures.
-
-| Scenario | Mean lateral RMSE | Worst lateral RMSE | Result |
-|---|---:|---:|---:|
-| Nominal | 0.063 m | 0.063 m | Pass |
-| Sensor noise | 0.080 m | 0.085 m | Pass |
-| Delay, uncompensated | 2.202 m | 2.202 m | Fail |
-| Delay, compensated | 0.084 m | 0.084 m | Pass |
-| 15% wheelbase mismatch | 0.064 m | 0.064 m | Pass |
-| Combined, uncompensated | 2.202 m | 2.330 m | Fail |
-| Combined, compensated | 0.115 m | 0.125 m | Pass |
-
-The uncompensated delay destabilizes tracking even though the optimizer itself still converges. The compensator propagates the measured state through queued actuator commands and shifts the reference to the command-application time. It reduces mean RMSE by approximately `96.2%` in the delay-only case and `94.8%` in the combined case.
-
-All 35 run-level results and the aggregated pass/fail table are retained in `results/metrics/robustness_runs.csv` and `results/metrics/robustness_summary.csv`.
-
-## MPC constraints and parameter sensitivity
-
-NMPC now evaluates speed without clipping inside its prediction rollout and imposes lower/upper speed inequalities at every prediction step. Steering-rate constraints likewise span the full horizon and are initialized from measured actuator steering. The exported metrics split acceleration, steering-angle, steering-rate, and speed-state violations instead of reporting only one aggregate count.
-
-`sensitivity_benchmark.py` sweeps 15 configured combinations while holding the experiment otherwise fixed. All 15 pass the `0.20 m` lateral-RMSE gate with zero constraint violations and solver failures.
-
-| Sweep | End-point effect | Interpretation |
-|---|---|---|
-| Horizon `4 → 16` | RMSE `0.0639 → 0.0625 m`; mean control time `5.4 → 66.2 ms` | Accuracy saturates near 8 steps; the default 8-step horizon is the better compute/accuracy balance |
-| `q_y` `2 → 32` | RMSE `0.0682 → 0.0587 m`; max steering rate `93.1 → 261.7°/s` | More lateral weight improves tracking but makes steering substantially more aggressive |
-| `rd_steer` `0.5 → 8` | RMSE `0.0594 → 0.0675 m`; max steering rate `234.0 → 96.7°/s` | More steering smoothing trades a small tracking loss for gentler actuation |
-
-Timing is a local Python measurement, not a hard real-time guarantee. Full sweep data and the trade-off plot are exported to `results/metrics/mpc_parameter_sensitivity.csv` and `results/figures/mpc_parameter_sensitivity.png`.
-
-## Dynamic-plant model mismatch
-
-`dynamic_model_benchmark.py` replaces the matched kinematic plant with a six-state dynamic bicycle model while leaving NMPC's prediction model unchanged. The plant adds lateral velocity, yaw rate, mass, yaw inertia, axle geometry, front/rear cornering stiffness, smooth `tanh` tire-force saturation, combined longitudinal/lateral friction circles at each axle, and RK4 integration. Front-wheel forces are resolved in the steered wheel frame and rotated into the vehicle body frame; the longitudinal/lateral velocity equations retain the standard `v_y r` / `v_x r` coupling terms. Physical parameters are loaded from the experiment configuration.
-
-| Scenario | Lateral RMSE | Max sideslip | Result |
+| Scenario | Lateral RMSE | Max Sideslip | Result |
 |---|---:|---:|---|
-| Matched kinematic, 12 m/s | 0.035 m | 0.00° | Pass |
-| Dynamic dry, 8–16 m/s | 0.037–0.066 m | ≤3.54° | Pass |
-| Dynamic wet, 12–16 m/s | 0.045–0.047 m | ≤2.36° | Pass |
-| Dynamic low-μ, 8–12 m/s | 0.045–0.067 m | ≤1.99° | Pass |
+| Dynamic dry/wet/low-μ operating cases | 0.037–0.067 m | ≤3.54° | Pass |
 | Aggressive dry, 16 m/s | 0.146 m | 9.09° | Fail |
 | Steering-rate limited, 12 m/s | 10.054 m | 5.93° | Fail |
-| Steering-rate aware MPC, 12 m/s | 0.061 m | 1.80° | Pass |
-| Aggressive low-μ, 12 m/s | 10.116 m | 89.51° | Fail |
+| Steering-rate-aware NMPC | 0.061 m | 1.80° | Pass |
+| Aggressive low-μ | 10.116 m | 89.51° | Fail |
 | Friction-aware low-μ planning | 0.054 m | 1.71° | Pass |
 
-The results separate two failure mechanisms. Ordinary tire-dynamics mismatch remains manageable, but an unmodeled `0.6 rad/s` steering-rate limit destabilizes the controller. Adding an actual-steering initial condition and hard rate constraints reduces lateral RMSE by approximately `99.4%` without changing the physical actuator limit. The corrected nonlinear plant also rejects the aggressive dry case on the `5°` sideslip gate even though its tracking RMSE remains below `0.30 m`; this prevents a numerically close but dynamically unstable run from being labeled successful.
+Making NMPC aware of the physical steering-rate state reduces lateral RMSE by approximately **99.4%** in the configured steering-rate stress case. Friction-aware speed/timing adaptation reduces the aggressive low-μ case by approximately **99.5%** while respecting the configured combined-acceleration envelope.
 
-An aggressive `2.5 s` maneuver on `μ = 0.3` saturates available force and fails, reaching approximately `89.5°` peak sideslip in the configured stress case. The friction-aware planner checks both configured longitudinal acceleration bounds and the Cartesian combined-acceleration friction envelope. It evaluates speed-transition timing independently from lane-change timing and selects: transition from `12` to `9.5 m/s` over `2.25 s` → start changing lanes at `0.5 s` → complete the maneuver over `4 s`. Peak longitudinal acceleration is `1.87 m/s²`; peak combined acceleration is `2.73 m/s²`, below the `0.95 μg = 2.80 m/s²` budget. The corrected dynamic plant reaches at most `0.953` tire-friction utilization and lateral RMSE falls by approximately `99.5%` to `0.054 m` without using a longitudinally infeasible reference.
+Stress-case failures are intentionally retained as before/after evidence rather than removed from the benchmark.
 
-The stress-case failures remain in the benchmark as before/after evidence rather than being overwritten. These are software-model operating-envelope tests, not real-vehicle validation.
+### Emergency Fallback
 
-Scenario-level results are exported to `results/metrics/dynamic_model_benchmark.csv`.
+When both candidate lanes are blocked, ordinary planning returns no feasible candidate and the controller transitions to an independent maximum-braking fallback. In the checked-in scenario, the vehicle stops with zero constraint violations and zero safety-controller failures; the discrete stop-preview distance differs from the simulated travel distance by only `0.022 m`.
 
-## Emergency fallback when no candidate is feasible
+The fallback is best-effort rather than a formal safety guarantee. If an obstacle is already inside the physical stopping envelope, the implementation records the collision as unavoidable while continuing to command maximum braking.
 
-`fallback_demo.py` blocks both available lanes at the same longitudinal position. All 8 ordinary lane/speed candidates enter an obstacle safety ellipse and are rejected. Instead of terminating with `No collision-free Frenet trajectory`, the planner records `normal_planning -> emergency_fallback`. A separate safety controller then bypasses ordinary longitudinal MPC and directly commands the maximum permitted deceleration of `-3 m/s²`, while an independent lateral controller holds the lane.
+## Reproducibility
 
-| Fallback metric | Result |
-|---|---:|
-| Normal candidates / feasible | 8 / 0 |
-| Reference stop time | 3.33 s |
-| Analytical continuous stop distance | 16.67 m |
-| Discrete-model stop distance | 17.17 m |
-| Reference minimum normalized clearance | 1.966 |
-| Actual travel distance | 17.148 m |
-| Distance error vs. discrete prediction | -0.022 m |
-| Actual final speed | 0.00 m/s |
-| Actual minimum normalized clearance | 1.974 |
-| Minimum commanded acceleration | -3.00 m/s² |
-| Input constraint violations | 0 |
-| Safety-controller failures | 0 |
+- Deterministic experiment configuration is versioned under `configs/`.
+- Quantitative outputs are committed under `results/metrics/`.
+- Figures are committed under `results/figures/`.
+- Acceptance criteria are exercised by the automated regression suite.
+- Release history is documented in [`CHANGELOG.md`](CHANGELOG.md).
 
-The forward-Euler stop preview now matches the simulation plant, leaving only `0.022 m` distance error. The feasibility threshold is `1.25`, so the checked-in blocked-road scenario remains clear while stopping. The fallback is deliberately best-effort rather than a false guarantee: if an obstacle is already inside the physical stopping envelope, `collision_avoidable` is set to `false` while maximum braking is still commanded. Unit tests cover the safe-stop, unavoidable-collision, direct-brake override, and online-replanning integration branches.
-
-Fallback metrics and the planning/tracking plot are exported to `results/metrics/emergency_fallback.csv` and `results/figures/emergency_fallback.png`.
-
-## Structure
+## Repository Structure
 
 ```text
-config.py                  experiment, vehicle, and MPC parameters
-configs/                   schema-v1 reproducible experiment definitions
-planning/reference_path.py arc-length road representation
-planning/frenet.py         Frenet lane-change trajectory
-planning/candidate_planner.py candidate feasibility and cost ranking
-planning/friction_aware.py friction-limited speed/timing adaptation
-planning/emergency.py      emergency-stop generation and fallback decision
-models/vehicle.py          kinematic bicycle plant/prediction model
-models/dynamic_vehicle.py  six-state nonlinear bicycle plant
-control/mpc.py             constrained nonlinear MPC
-control/stanley_pid.py     classical tracking baseline
-control/emergency.py       direct maximum braking and lane holding
-evaluation/metrics.py      metric calculation and CSV export
-simulation.py              shared closed-loop experiment runner
-benchmark.py               multi-scenario controller comparison
-planner_demo.py            one-shot candidate planning and tracking
-replanning_demo.py         online prediction, commitment, and replanning loop
-robustness_benchmark.py    noise/delay/mismatch Monte Carlo experiments
-dynamic_model_benchmark.py friction and dynamic-plant envelope tests
-fallback_demo.py           fully blocked-road emergency-stop validation
-sensitivity_benchmark.py   MPC horizon/weight trade-off experiment
-main.py                    closed-loop simulation and plots
-tests/                     unit and quantitative regression gates
-.github/workflows/ci.yml   Python 3.10/3.12 pytest, compile, dependency, and Ruff CI
-CHANGELOG.md               release history and portfolio hardening notes
+frenet-mpc-motion-planning/
+|-- README.md
+|-- CHANGELOG.md
+|-- pyproject.toml
+|-- configs/                    # Versioned experiment inputs
+|-- control/                    # NMPC and classical controllers
+|-- models/                     # Kinematic and dynamic vehicle models
+|-- planning/                   # Frenet planning and fallback logic
+|-- evaluation/                 # Metrics and regression helpers
+|-- tests/                      # 32 automated tests
+|-- results/
+|   |-- metrics/                # Reproducible numerical outputs
+|   `-- figures/                # Reproducible plots
+|-- main.py
+|-- benchmark.py
+|-- planner_demo.py
+|-- replanning_demo.py
+|-- robustness_benchmark.py
+|-- dynamic_model_benchmark.py
+|-- fallback_demo.py
+`-- sensitivity_benchmark.py
 ```
+
+## Scope
+
+This repository is a reproducible research and algorithm-development project. It is not a production autonomous-driving stack, a certified safety component, or evidence of real-vehicle performance.
+
+The current scope covers software-model planning and control, robustness evaluation, physical-model mismatch, actuator and friction constraints, and deterministic fallback behavior. Hardware-in-the-loop testing, perception uncertainty, real-vehicle integration, and formal safety certification remain outside the current baseline.
+
+Research extensions are kept separate from the stable `v1.1.1` baseline on `research/robust-cbf-nmpc-v2`.
 
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-
-## Current scenario
-
-The ego vehicle starts with a deliberate `-0.35 m` lateral disturbance, tracks a `3.5 m` lane change over `4 s`, and continues along a curved road at approximately `10 m/s`. This is a baseline experiment, not yet evidence of real-world controller performance.
-
-## Current completion status
-
-The **V1.1.1** software baseline is portfolio-ready: initial modeling, P0 safety corrections, P1 controller analysis/constraints, P2 dynamic-model/configuration/regression work, solver-failure hardening, physical-parameter validation, corrected body-frame dynamic-bicycle equations, and repository-level reporting are complete. The suite currently contains **32 pytest tests**, including deterministic acceptance gates for the baseline controller, predicted speed constraints, per-axle friction circles, body-frame force coupling and steering projection, left/right dynamic symmetry, steering-rate correction, friction-aware low-μ correction, robustness aggregation, lane-change-duration parameter propagation, invalid physical configurations, and NMPC solver-failure/non-finite-output handling. GitHub Actions runs the full suite on every push to `main` and every pull request targeting `main` on Python 3.10 and 3.12, together with compile, dependency-consistency, Ruff lint, and Ruff-format checks.
-
-Research extensions remain isolated from V1.1.1 on `research/robust-cbf-nmpc-v2`, whose roadmap targets friction-envelope constraints, CBF safety, robust uncertainty handling, risk-aware scoring, realistic scenario benchmarks, and publication-grade ablations. Hardware-oriented validation remains outside this software-model scope.
